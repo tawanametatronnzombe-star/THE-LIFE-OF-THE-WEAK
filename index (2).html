@@ -1,0 +1,2812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>THE LIFE OF THE WEAK</title>
+<style>
+  :root{
+    --accent:#ff7a1a;
+    --accent2:#37e6ff;
+    --panel-bg: rgba(10,12,16,0.72);
+    --panel-border: rgba(255,255,255,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%; overflow:hidden;
+    background:#000; font-family:"Segoe UI", Arial, Helvetica, sans-serif;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+  }
+  #game{ position:fixed; inset:0; display:block; width:100%; height:100%; touch-action:none; filter:contrast(1.07) saturate(1.16) brightness(1.02); }
+  #vignette{
+    position:fixed; inset:0; z-index:15; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) 42%, rgba(0,0,0,0.38) 100%);
+  }
+
+  /* ---------- Loading screen ---------- */
+  #loading{
+    position:fixed; inset:0; z-index:50;
+    background: radial-gradient(ellipse at 50% 30%, #1a1420 0%, #05050a 70%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:#eee; text-align:center;
+  }
+  #loading h1{
+    font-size:clamp(28px,6vw,58px); letter-spacing:6px; margin:0 0 6px 0;
+    background:linear-gradient(90deg,var(--accent),#ffd27a,var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 0 40px rgba(255,122,26,0.25);
+    font-weight:800;
+  }
+  #loading .sub{ opacity:0.6; font-size:13px; letter-spacing:3px; margin-bottom:40px; }
+  .bar-outer{
+    width:min(420px,80vw); height:10px; border-radius:6px; background:rgba(255,255,255,0.08);
+    overflow:hidden; border:1px solid rgba(255,255,255,0.12);
+  }
+  .bar-inner{
+    height:100%; width:0%; border-radius:6px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    transition:width 0.25s ease-out;
+    box-shadow:0 0 12px rgba(255,122,26,0.6);
+  }
+  #loadStatus{ margin-top:16px; font-size:13px; opacity:0.75; letter-spacing:1px; min-height:18px; }
+  #loadPct{ margin-top:6px; font-size:22px; font-weight:700; letter-spacing:2px; color:var(--accent2); }
+
+  /* ---------- Start / intro overlay ---------- */
+  #startScreen{
+    position:fixed; inset:0; z-index:40; display:none;
+    background:rgba(4,4,8,0.86); color:#eee;
+    align-items:center; justify-content:center; flex-direction:column; text-align:center;
+    padding:24px;
+  }
+  #startScreen h1{
+    font-size:clamp(30px,7vw,64px); margin:0; letter-spacing:5px; font-weight:800;
+    background:linear-gradient(90deg,var(--accent),#ffd27a,var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  #startScreen .tag{ opacity:0.7; margin-top:8px; font-size:14px; letter-spacing:2px; }
+  #controlsGrid{
+    margin-top:28px; display:grid; grid-template-columns:repeat(2,minmax(140px,1fr));
+    gap:8px 26px; font-size:13px; opacity:0.85; max-width:520px;
+  }
+  #controlsGrid div span{ color:var(--accent2); font-weight:700; margin-right:6px; }
+  #startBtn{
+    margin-top:34px; padding:14px 42px; font-size:16px; letter-spacing:3px; font-weight:700;
+    background:linear-gradient(90deg,var(--accent),#ff9a4a); color:#160b02; border:none; border-radius:6px;
+    cursor:pointer; box-shadow:0 6px 24px rgba(255,122,26,0.35);
+  }
+  #startBtn:active{ transform:translateY(1px); }
+  #startScreen .note{ margin-top:14px; font-size:11px; opacity:0.45; max-width:460px; }
+
+  /* ---------- HUD ---------- */
+  #hud{ position:fixed; inset:0; z-index:20; pointer-events:none; display:none; font-family:"Segoe UI",Arial,sans-serif; }
+  .hudBtn{
+    pointer-events:auto; cursor:pointer; border:1px solid rgba(255,255,255,0.18);
+    background:rgba(10,12,16,0.76); color:#fff; border-radius:6px; padding:8px 11px;
+    font-size:11px; font-weight:800; letter-spacing:1px; backdrop-filter:blur(5px);
+    box-shadow:0 4px 14px rgba(0,0,0,0.24);
+  }
+  .hudBtn:hover,.hudBtn:focus{ border-color:var(--accent2); background:rgba(20,28,36,0.9); outline:none; }
+  #hudTools{ position:absolute; top:16px; right:164px; display:flex; gap:7px; pointer-events:none; }
+  #hudTools .hudBtn{ pointer-events:auto; }
+  #objective{
+    position:absolute; top:16px; left:16px; max-width:min(420px,60vw);
+    background:var(--panel-bg); border:1px solid var(--panel-border); border-left:3px solid var(--accent);
+    padding:10px 14px; border-radius:4px; color:#fff; backdrop-filter:blur(4px);
+  }
+  #objective .lbl{ font-size:10px; letter-spacing:2px; color:var(--accent); font-weight:700; }
+  #objective .txt{ font-size:13px; margin-top:3px; line-height:1.35; }
+
+  #bars{ position:absolute; left:16px; bottom:16px; width:190px; }
+  .barrow{ display:flex; align-items:center; margin-bottom:6px; }
+  .barrow .tag{ width:26px; font-size:10px; color:#ccc; font-weight:700; }
+  .barrow .track{ flex:1; height:9px; border-radius:5px; background:rgba(255,255,255,0.12); overflow:hidden; border:1px solid rgba(255,255,255,0.15); }
+  .barrow .fill{ height:100%; border-radius:5px; }
+  #healthFill{ background:linear-gradient(90deg,#ff3b3b,#ff8a3b); }
+  #staminaFill{ background:linear-gradient(90deg,#37e6ff,#37ffb0); }
+
+  #interactPrompt{
+    position:absolute; bottom:130px; left:50%; transform:translateX(-50%);
+    background:var(--panel-bg); border:1px solid var(--panel-border); padding:8px 16px; border-radius:20px;
+    font-size:12px; color:#fff; opacity:0; transition:opacity 0.15s; white-space:nowrap;
+  }
+  #minimapWrap{
+    position:absolute; top:16px; right:16px; width:130px; height:130px; border-radius:50%;
+    overflow:hidden; border:2px solid rgba(255,255,255,0.25); background:#0a0c10;
+    box-shadow:0 4px 20px rgba(0,0,0,0.5);
+  }
+  #minimap{ width:100%; height:100%; display:block; }
+  #clock{
+    position:absolute; top:150px; right:16px; width:130px; text-align:center;
+    font-size:11px; letter-spacing:2px; color:#ccc; background:var(--panel-bg); border:1px solid var(--panel-border);
+    border-radius:4px; padding:4px 0;
+  }
+  #worldStatus{
+    position:absolute; top:184px; right:16px; width:130px; text-align:center;
+    font-size:10px; letter-spacing:1px; color:#9deeff; opacity:0.8;
+  }
+
+  #dialogue{
+    position:absolute; bottom:170px; left:50%; transform:translateX(-50%) translateY(10px);
+    width:min(520px,86vw); background:var(--panel-bg); border:1px solid var(--panel-border);
+    border-radius:8px; padding:12px 16px; color:#fff; opacity:0; transition:opacity 0.25s, transform 0.25s;
+    backdrop-filter:blur(4px);
+  }
+  #dialogue.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  #dialogue .who{ font-size:11px; letter-spacing:2px; color:var(--accent2); font-weight:700; margin-bottom:3px; }
+  #dialogue .what{ font-size:14px; line-height:1.4; }
+
+  #toast{
+    position:absolute; top:44%; left:50%; transform:translate(-50%,-50%) scale(0.9);
+    font-size:clamp(18px,3.4vw,30px); letter-spacing:2px; font-weight:800; color:#fff;
+    text-shadow:0 2px 14px rgba(0,0,0,0.8); opacity:0; transition:opacity 0.4s, transform 0.4s; text-align:center;
+    pointer-events:none;
+  }
+  #toast.show{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+
+  #fade{ position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; z-index:60; transition:opacity 0.5s; }
+
+  .modal{
+    position:fixed; inset:0; z-index:45; display:none; align-items:center; justify-content:center;
+    background:rgba(2,4,8,0.72); backdrop-filter:blur(7px); pointer-events:auto; padding:18px;
+  }
+  .modal.open{ display:flex; }
+  .modalCard{
+    width:min(780px,94vw); max-height:min(760px,90vh); overflow:auto; color:#eef6ff;
+    background:linear-gradient(145deg,rgba(15,20,30,0.97),rgba(7,10,15,0.97));
+    border:1px solid rgba(130,220,255,0.25); border-radius:14px; padding:18px;
+    box-shadow:0 24px 80px rgba(0,0,0,0.5);
+  }
+  .modalHead{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .modalHead h2{ margin:0; font-size:18px; letter-spacing:2px; }
+  .closeBtn{ border:0; background:transparent; color:#a9b5c0; font-size:24px; cursor:pointer; }
+  #mapCanvas{ width:100%; height:auto; max-height:65vh; display:block; border-radius:10px; background:#131a20; }
+  .mapLegend{ display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; font-size:11px; color:#aab7c4; }
+  .mapLegend span b{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
+  #phoneCard{ width:min(390px,92vw); }
+  #phoneScreen{ background:#0b1118; border:1px solid rgba(55,230,255,0.22); border-radius:12px; padding:14px; min-height:310px; }
+  .phoneTime{ color:#65e8ff; font-size:11px; letter-spacing:1px; }
+  .phoneTitle{ font-size:25px; font-weight:800; margin:7px 0 16px; }
+  .phoneGrid{ display:grid; grid-template-columns:repeat(2,1fr); gap:9px; }
+  .phoneAction{ padding:13px 8px; border-radius:9px; border:1px solid rgba(255,255,255,0.12); background:#151f2a; color:#fff; cursor:pointer; text-align:left; }
+  .phoneAction strong{ display:block; color:#fff; font-size:12px; }
+  .phoneAction small{ display:block; color:#94a7b5; margin-top:4px; font-size:10px; }
+  #phoneLog{ margin-top:14px; color:#a9bbc7; font-size:11px; line-height:1.5; max-height:100px; overflow:auto; }
+  .modal.phoneDock{
+    inset:auto 22px 22px auto; width:min(390px,92vw); height:auto; padding:0;
+    background:transparent; backdrop-filter:none; align-items:flex-end; justify-content:flex-end;
+    perspective:900px;
+  }
+  .modal.phoneDock .modalCard{ max-height:78vh; border-color:rgba(55,230,255,0.42); }
+  #phoneCard{
+    transform:rotateX(80deg) translateY(40px); transform-origin:bottom center; opacity:0;
+    transition:transform 0.4s cubic-bezier(.22,.9,.32,1.25), opacity 0.3s ease-out;
+  }
+  #phoneCard.flip-open{ transform:rotateX(0deg) translateY(0); opacity:1; }
+  .phoneApp{ animation:phoneFade 0.18s ease-out; }
+  @keyframes phoneFade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  .phoneBackBtn{
+    background:none; border:0; color:#65e8ff; font-size:11px; letter-spacing:1px; cursor:pointer;
+    padding:0 0 10px 0; text-align:left;
+  }
+  .contactRow{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px; border-radius:8px; background:#151f2a; margin-bottom:8px;
+  }
+  .contactRow .who strong{ display:block; font-size:13px; }
+  .contactRow .who small{ color:#94a7b5; font-size:10px; }
+  .miniBtn{
+    border:1px solid rgba(255,255,255,0.2); background:#1c2a36; color:#fff; border-radius:6px;
+    padding:6px 10px; font-size:10px; cursor:pointer; white-space:nowrap;
+  }
+  .miniBtn:disabled{ opacity:0.35; cursor:default; }
+  .photoGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .photoGrid img{ width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; background:#1c2a36; }
+  .planetCard{ padding:11px; border-radius:9px; background:#151f2a; margin-bottom:8px; }
+  .planetCard h4{ margin:0 0 3px 0; font-size:13px; }
+  .planetCard p{ margin:0 0 8px 0; font-size:11px; color:#9dafbb; }
+  #conversationModal{ z-index:46; }
+  #conversationCard{ width:min(700px,94vw); }
+  .conversationSlide{ display:grid; grid-template-columns:150px 1fr; gap:16px; align-items:stretch; }
+  .convPortrait{
+    min-height:190px; border-radius:10px; border:1px solid rgba(255,255,255,0.15);
+    background:radial-gradient(circle at 50% 34%,#d8a878 0 10%,transparent 11%),linear-gradient(145deg,#1d3851,#131923 58%,#9a4444);
+    position:relative; overflow:hidden;
+  }
+  .convPortrait:after{ content:""; position:absolute; left:25%; right:25%; bottom:-8%; height:58%; border-radius:50% 50% 0 0; background:rgba(55,230,255,0.32); }
+  .convKicker{ color:#65e8ff; font-size:10px; letter-spacing:2px; }
+  #conversationText{ font-size:18px; line-height:1.35; margin:9px 0 16px; min-height:76px; }
+  #replyChoices{ display:flex; flex-wrap:wrap; gap:8px; }
+  .replyBtn{ flex:1 1 42%; border:1px solid rgba(255,255,255,0.14); border-radius:7px; background:#16232f; color:#eef6ff; padding:10px; text-align:left; cursor:pointer; font-size:12px; }
+  .replyBtn:hover{ border-color:#37e6ff; background:#1c3443; }
+  #conversationMeta{ color:#9dafbb; font-size:11px; margin-top:12px; }
+  .friendChip{ display:inline-block; color:#ffd27a; border:1px solid rgba(255,210,122,0.4); border-radius:12px; padding:3px 7px; margin:2px; }
+  #interiorBadge{
+    position:absolute; top:16px; left:50%; transform:translateX(-50%); display:none;
+    padding:7px 12px; border-radius:5px; background:rgba(20,24,30,0.84); color:#ffd27a;
+    border:1px solid rgba(255,210,122,0.35); font-size:10px; letter-spacing:2px;
+  }
+
+  /* ---------- touch controls ---------- */
+  #touchLayer{ position:fixed; inset:0; z-index:22; display:none; pointer-events:none; }
+  .tzone{ position:absolute; pointer-events:auto; }
+  #joyBase{
+    width:110px; height:110px; border-radius:50%; background:rgba(255,255,255,0.08);
+    border:2px solid rgba(255,255,255,0.25); position:absolute; display:none;
+  }
+  #joyKnob{
+    width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,0.35);
+    position:absolute; left:32px; top:32px; pointer-events:none;
+  }
+  .actionBtn{
+    position:absolute; width:66px; height:66px; border-radius:50%; pointer-events:auto;
+    background:var(--panel-bg); border:2px solid rgba(255,255,255,0.25); color:#fff; font-weight:800; font-size:13px;
+    display:flex; align-items:center; justify-content:center; letter-spacing:1px;
+  }
+  #btnInteract{ right:20px; bottom:110px; border-color:var(--accent); }
+  #btnJump{ right:100px; bottom:40px; }
+  #btnSprint{ right:20px; bottom:20px; }
+  #btnSprint.active, .actionBtn.active{ background:rgba(255,122,26,0.35); }
+  #helpHint{
+    position:absolute; bottom:6px; left:50%; transform:translateX(-50%); font-size:10px; color:rgba(255,255,255,0.4);
+    letter-spacing:1px;
+  }
+  @media (max-width:700px){
+    #hudTools{ top:auto; bottom:164px; right:12px; }
+    #minimapWrap{ width:104px; height:104px; right:12px; top:12px; }
+    #clock{ top:122px; right:12px; width:104px; }
+    #worldStatus{ top:154px; right:12px; width:104px; font-size:9px; }
+    #objective{ max-width:calc(100vw - 150px); left:12px; top:12px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+
+<div id="loading">
+  <h1>THE LIFE OF THE WEAK</h1>
+  <div class="sub">an open world about surviving an ordinary night that stops being ordinary</div>
+  <div class="bar-outer"><div class="bar-inner" id="barInner"></div></div>
+  <div id="loadPct">0%</div>
+  <div id="loadStatus">booting engine...</div>
+</div>
+
+<div id="startScreen">
+  <h1>THE LIFE OF THE WEAK</h1>
+  <div class="tag">a small city. an ordinary guy. something in the desert that shouldn't be there.</div>
+  <div id="controlsGrid">
+    <div><span>WASD</span>move</div>
+    <div><span>Shift</span>sprint</div>
+    <div><span>Space</span>jump</div>
+    <div><span>Mouse Drag</span>rotate camera</div>
+    <div><span>Scroll</span>zoom</div>
+    <div><span>E</span>interact / enter vehicle</div>
+    <div><span>H</span>toggle this help</div>
+    <div><span>Touch</span>left = move, right = look</div>
+  </div>
+  <button id="startBtn">ENTER THE WORLD</button>
+  <div class="note">Runs entirely in your browser. No servers, no downloads, no loading of external assets — the whole city, every character and every sound is generated live by your machine right now.</div>
+</div>
+
+<div id="hud">
+  <div id="objective"><div class="lbl">OBJECTIVE</div><div class="txt" id="objectiveText">Look around. Breathe. It's just another night in the city.</div></div>
+  <div id="minimapWrap"><canvas id="minimap" width="260" height="260"></canvas></div>
+  <div id="clock">--:--</div>
+  <div id="worldStatus">CITY // LIVE SIM</div>
+  <div id="hudTools">
+    <button class="hudBtn" id="mapBtn" title="Open full map">MAP [M]</button>
+    <button class="hudBtn" id="phoneBtn" title="Open phone">PHONE [P]</button>
+  </div>
+  <div id="interiorBadge">INTERIOR // LIVE SPACE</div>
+  <div id="bars">
+    <div class="barrow"><div class="tag">HP</div><div class="track"><div class="fill" id="healthFill" style="width:100%"></div></div></div>
+    <div class="barrow"><div class="tag">STA</div><div class="track"><div class="fill" id="staminaFill" style="width:100%"></div></div></div>
+  </div>
+  <div id="interactPrompt">[E] Interact</div>
+  <div id="dialogue"><div class="who" id="dialogueWho">???</div><div class="what" id="dialogueWhat"></div></div>
+  <div id="toast"></div>
+</div>
+
+<div class="modal" id="mapModal" aria-hidden="true">
+  <div class="modalCard">
+    <div class="modalHead"><h2>WORLD MAP</h2><button class="closeBtn" id="mapClose" aria-label="Close map">×</button></div>
+    <canvas id="mapCanvas" width="900" height="620"></canvas>
+    <div class="mapLegend">
+      <span><b style="background:#fff"></b>you</span>
+      <span><b style="background:#ffd27a"></b>people</span>
+      <span><b style="background:#ff5c5c"></b>vehicles</span>
+      <span><b style="background:#37e6ff"></b>portal</span>
+      <span><b style="background:#c485ff"></b>building</span>
+    </div>
+  </div>
+</div>
+
+<div class="modal phoneDock" id="phoneModal" aria-hidden="true">
+  <div class="modalCard" id="phoneCard">
+    <div class="modalHead"><h2 id="phoneHeaderTitle">NIGHTLINE</h2><button class="closeBtn" id="phoneClose" aria-label="Close phone">×</button></div>
+    <div id="phoneScreen">
+      <div class="phoneTime" id="phoneTime">NO SIGNAL // LOCAL MODE</div>
+      <div id="phoneBody"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="conversationModal" aria-hidden="true">
+  <div class="modalCard" id="conversationCard">
+    <div class="modalHead"><h2 id="conversationTitle">MEETING</h2><button class="closeBtn" id="conversationClose" aria-label="Close conversation">×</button></div>
+    <div class="conversationSlide">
+      <div class="convPortrait" id="convPortrait"></div>
+      <div>
+        <div class="convKicker" id="conversationKicker">LIVE CONVERSATION // LOCAL</div>
+        <div id="conversationText">...</div>
+        <div id="replyChoices"></div>
+        <div id="conversationMeta"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="touchLayer">
+  <div id="joyBase" class="tzone"><div id="joyKnob"></div></div>
+  <div id="btnInteract" class="actionBtn tzone">E</div>
+  <div id="btnJump" class="actionBtn tzone">JMP</div>
+  <div id="btnSprint" class="actionBtn tzone">RUN</div>
+  <div id="helpHint">drag anywhere on the right to look around</div>
+</div>
+
+<div id="fade"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* =========================================================================
+   THE LIFE OF THE WEAK
+   A single-file, backend-free 3D open world built live in your browser
+   with Three.js. Every texture, every character, every sound is generated
+   procedurally at runtime -- nothing is a static mockup or pre-rendered
+   asset. Collisions, AI, day/night, driving and dialogue all run in real
+   time on the client.
+   ========================================================================= */
+
+// ---------------------------------------------------------------------
+// small utilities
+// ---------------------------------------------------------------------
+function rand(a,b){ return a + Math.random()*(b-a); }
+function irand(a,b){ return Math.floor(rand(a,b+1)); }
+function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function lerpAngle(a,b,t){
+  let diff = ((b-a+Math.PI)%(Math.PI*2))-Math.PI;
+  return a + diff*t;
+}
+function yieldFrame(ms){
+  return new Promise(res=>{
+    // A timer is more reliable than a double RAF during background-tab and
+    // headless launches, while still yielding to the browser between batches.
+    setTimeout(res, ms || 0);
+  });
+}
+
+// ---------------------------------------------------------------------
+// loading screen wiring
+// ---------------------------------------------------------------------
+const barInner = document.getElementById('barInner');
+const loadPct = document.getElementById('loadPct');
+const loadStatus = document.getElementById('loadStatus');
+function updateLoading(pct, msg){
+  barInner.style.width = pct+'%';
+  loadPct.textContent = Math.round(pct)+'%';
+  if(msg) loadStatus.textContent = msg;
+}
+
+// ---------------------------------------------------------------------
+// core three.js state
+// ---------------------------------------------------------------------
+let scene, camera, renderer, clock;
+const canvas = document.getElementById('game');
+
+let sunLight, hemiLight, ambientLight;
+let skyDome, starField;
+let dayTime = 7.5;          // hours 0-24
+const DAY_SPEED = 24/480;   // one full day every 8 real minutes
+
+const CITY_SIZE = 240;
+const GRID_N = 6;
+const BLOCK = CITY_SIZE/GRID_N;
+const ROAD_W = 8;
+
+const ALIEN_OFFSET = new THREE.Vector3(6000,0,0);
+const ALIEN_SIZE = 200;
+
+let buildingColliders = [];   // {x,z,hw,hd}
+let buildings = [];           // viewable buildings with live interiors
+let cityPortal, alienPortal;
+let npcs = [];
+let creatures = [];
+let props = { lamps:[], trees:[] };
+let trafficCars = [];
+let ufoPad = null;
+
+let player, playerParts;
+let playerPos = new THREE.Vector3(0,0,18);
+let playerYaw = 0;
+let playerVel = new THREE.Vector3();
+let onGround = true;
+let inZone = 'city'; // 'city' | 'alien'
+let insideBuilding = null;
+
+let car, carParts;
+let carState = { pos:new THREE.Vector3(20,0,-10), yaw:0, speed:0, wheelSpin:0 };
+let inCar = false;
+
+let health=100, stamina=100, sprintLock=false;
+
+let cameraTheta = Math.PI, cameraPhi = 0.42, cameraDistance = 9.5;
+const CAMERA_MIN_DIST=4, CAMERA_MAX_DIST=18;
+
+let keys = {};
+let nearestInteractable = null; // {type,obj,dist,label}
+
+let missionStage = 0;
+let missionFlags = {};
+let lastScan = 'No scan yet.';
+let activeConversation = null;
+let friends = [];
+let friendMessages = {};
+let currentWorld = 'city';
+let communityBoard = null;
+const COMMUNITY_NOTICES = [
+  "LOST CAT: answers to 'Detective'. Do not make eye contact, he finds it disrespectful.",
+  "Block party Thursday. Bring a dish. Do NOT bring up the lights near the east lot.",
+  "WANTED: someone braver than me to check what's making that noise by the water tower. Pay negotiable.",
+  "Reminder: the fountain is not a wishing well. Stop throwing your car keys in it, Gary.",
+  "Neighborhood watch meeting moved indoors. Permanently. No further explanation.",
+  "Free hot dogs, corner of 5th. Ask for Tony. Do not ask Tony about the sky.",
+  "If you saw a green light over downtown last night, you and eleven other people did too.",
+];
+
+// ---------------------------------------------------------------------
+// planets ("galaxies" -- a Star Map of real, distinct destinations)
+// Rather than keep three full worlds resident in memory at once, the
+// portal zone is reskinned in place: same physical bounds every time,
+// but the ground colors, sky, props and creature mix are regenerated
+// live from a different palette. Pick a destination on the Star Map
+// (in the phone) before stepping through the portal, or warp instantly
+// while already off-world.
+// ---------------------------------------------------------------------
+const PLANET_DEFS = {
+  verdari:{
+    name:'Verdari', blurb:'Humid, glowing jungle-world. Mostly curious about you, not hungry.',
+    domeColor:0x1a0b28, groundBase:'#3a1146', groundDark:'#170a22',
+    spotA:'rgba(255,120,220,0.25)', spotB:'rgba(120,220,255,0.18)',
+    rockColors:[0x5a3d7a,0x2f5d6e,0x6e2f55], plantColor:0xff6adf, lightColor:0xaa66ff,
+    hostiles:2, friendlies:2
+  },
+  kryotek:{
+    name:'Kryotek', blurb:'Frozen wastes under a pale green sky. The locals keep their distance.',
+    domeColor:0x0a1830, groundBase:'#0d2440', groundDark:'#050c18',
+    spotA:'rgba(160,220,255,0.32)', spotB:'rgba(210,240,255,0.16)',
+    rockColors:[0x8fb9d8,0x5f89ad,0xc9e8ff], plantColor:0x9fe8ff, lightColor:0x77c9ff,
+    hostiles:1, friendlies:2
+  },
+  bloodspire:{
+    name:'Bloodspire', blurb:'Volcanic and hostile. Almost nothing here wants to talk. Get in, get out.',
+    domeColor:0x220505, groundBase:'#3a0d0d', groundDark:'#170404',
+    spotA:'rgba(255,110,60,0.34)', spotB:'rgba(255,60,60,0.2)',
+    rockColors:[0x7a2f2f,0x8a4a1f,0x5c1414], plantColor:0xff8a3b, lightColor:0xff6a3b,
+    hostiles:4, friendlies:0
+  },
+};
+let currentPlanetKey = 'verdari';
+let nextPlanetKey = 'verdari';
+let gameTex = null;
+
+// ---------------------------------------------------------------------
+// boot sequence
+// ---------------------------------------------------------------------
+async function boot(){
+  try{
+    updateLoading(2,'booting render engine...');
+    initRenderer();
+    await yieldFrame();
+
+    updateLoading(8,'unpacking sky and light...');
+    initSceneBasics();
+    await yieldFrame();
+
+    updateLoading(16,'weaving textures by hand...');
+    const tex = generateTextures();
+    gameTex = tex;
+    await yieldFrame();
+
+    updateLoading(26,'pouring the city streets...');
+    await buildCityGround(tex);
+
+    updateLoading(42,'raising the buildings...');
+    await buildCityBuildings(tex);
+
+    updateLoading(58,'planting trees, lamps & junk...');
+    await buildCityProps(tex);
+
+    updateLoading(70,'writing 12 strangers into existence...');
+    await spawnNPCs();
+
+    updateLoading(80,'tearing a hole to somewhere else...');
+    buildPortals();
+    buildAlienWorld(tex, currentPlanetKey);
+    buildSpaceRoute();
+
+    updateLoading(90,'assembling you...');
+    buildPlayer();
+    buildVehicle();
+
+    updateLoading(96,'warming up the speakers...');
+    initAudio();
+
+    updateLoading(100,'ready.');
+    await yieldFrame(250);
+    document.getElementById('loading').style.display='none';
+    showStartScreen();
+  }catch(err){
+    loadStatus.textContent = 'something broke: '+err.message;
+    console.error(err);
+  }
+}
+
+function initRenderer(){
+  renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  clock = new THREE.Clock();
+  window.addEventListener('resize', onResize);
+}
+function onResize(){
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function initSceneBasics(){
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x9fc3de, 60, 260);
+
+  camera = new THREE.PerspectiveCamera(62, window.innerWidth/window.innerHeight, 0.1, 3000);
+
+  hemiLight = new THREE.HemisphereLight(0xbcd8ff, 0x33301f, 0.65);
+  scene.add(hemiLight);
+
+  ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
+  scene.add(ambientLight);
+
+  sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+  sunLight.position.set(80,120,40);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.set(2048,2048);
+  sunLight.shadow.camera.near = 10;
+  sunLight.shadow.camera.far = 320;
+  sunLight.shadow.camera.left = -150;
+  sunLight.shadow.camera.right = 150;
+  sunLight.shadow.camera.top = 150;
+  sunLight.shadow.camera.bottom = -150;
+  sunLight.shadow.bias = -0.0018;
+  sunLight.shadow.normalBias = 0.02;
+  scene.add(sunLight);
+  scene.add(sunLight.target);
+
+  // gradient sky dome (top/bottom colors interpolated live in updateDayTime,
+  // instead of a single flat background color -- reads as an actual sky
+  // rather than a solid-fill placeholder)
+  skyDome = new THREE.Mesh(
+    new THREE.SphereGeometry(1400, 20, 14),
+    new THREE.ShaderMaterial({
+      uniforms:{ topColor:{value:new THREE.Color(0x3a72c9)}, bottomColor:{value:new THREE.Color(0xcfe6ff)}, offset:{value:20}, exponent:{value:0.7} },
+      vertexShader:`varying vec3 vWorldPosition; void main(){ vec4 wp = modelMatrix*vec4(position,1.0); vWorldPosition = wp.xyz; gl_Position = projectionMatrix*viewMatrix*wp; }`,
+      fragmentShader:`uniform vec3 topColor; uniform vec3 bottomColor; uniform float offset; uniform float exponent; varying vec3 vWorldPosition;
+        void main(){ float h = normalize(vWorldPosition+vec3(0.0,offset,0.0)).y; gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h,0.0),exponent),0.0)),1.0); }`,
+      side: THREE.BackSide, fog:false, depthWrite:false
+    })
+  );
+  scene.add(skyDome);
+
+  // a light scatter of stars, only visible once the sky darkens toward night
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 700;
+  const starPos = new Float32Array(starCount*3);
+  for(let i=0;i<starCount;i++){
+    const r = 1300;
+    const theta = Math.random()*Math.PI*2;
+    const phi = Math.random()*Math.PI*0.5; // upper hemisphere only
+    starPos[i*3] = r*Math.sin(phi)*Math.cos(theta);
+    starPos[i*3+1] = r*Math.cos(phi)+40;
+    starPos[i*3+2] = r*Math.sin(phi)*Math.sin(theta);
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos,3));
+  starField = new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xffffff, size:2.4, sizeAttenuation:false, transparent:true, opacity:0, depthWrite:false}));
+  scene.add(starField);
+}
+
+// ---------------------------------------------------------------------
+// procedural textures (all drawn live on <canvas>, nothing external)
+// ---------------------------------------------------------------------
+function generateTextures(){
+  const tex = {};
+  tex.window = makeWindowTexture();
+  tex.roof = makeSolidNoiseTexture('#2c2c34', '#1c1c22', 64);
+  tex.groundCity = null; // built later once we know layout
+  tex.groundAlien = makeAlienGroundTexture();
+  tex.bark = makeSolidNoiseTexture('#5a4632', '#40311f', 32);
+  tex.leaf = makeSolidNoiseTexture('#3f7d3a', '#2c5c29', 32);
+  tex.asphaltDetail = makeSolidNoiseTexture('#3a3d42','#2c2f33',48);
+  return tex;
+}
+
+function makeCanvasTex(size, drawFn){
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  drawFn(ctx, size);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+function makeWindowTexture(){
+  return makeCanvasTex(128, (ctx,s)=>{
+    ctx.fillStyle = '#23262b';
+    ctx.fillRect(0,0,s,s);
+    const cols=6, rows=8;
+    const cw=s/cols, rh=s/rows;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const lit = Math.random()<0.4;
+        ctx.fillStyle = lit ? (Math.random()<0.5?'#ffd98a':'#8fe0ff') : '#141519';
+        const pad=cw*0.18;
+        ctx.fillRect(c*cw+pad, r*rh+pad, cw-pad*2, rh-pad*2);
+      }
+    }
+  });
+}
+
+function makeSolidNoiseTexture(base, spot, size){
+  return makeCanvasTex(size, (ctx,s)=>{
+    ctx.fillStyle = base;
+    ctx.fillRect(0,0,s,s);
+    ctx.fillStyle = spot;
+    for(let i=0;i<s*3;i++){
+      const x=Math.random()*s, y=Math.random()*s, r=Math.random()*1.6;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    }
+  });
+}
+
+function makeAlienGroundTexture(base, dark, spotA, spotB){
+  base = base || '#3a1146'; dark = dark || '#170a22';
+  spotA = spotA || 'rgba(255,120,220,0.25)'; spotB = spotB || 'rgba(120,220,255,0.18)';
+  return makeCanvasTex(256, (ctx,s)=>{
+    const grad = ctx.createRadialGradient(s/2,s/2,10,s/2,s/2,s*0.75);
+    grad.addColorStop(0,base);
+    grad.addColorStop(1,dark);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,s,s);
+    for(let i=0;i<900;i++){
+      const x=Math.random()*s, y=Math.random()*s, r=Math.random()*1.8;
+      ctx.fillStyle = Math.random()<0.5 ? spotA : spotB;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    }
+  });
+}
+
+// draw the whole city layout (roads/plots/plaza) into one big texture
+function drawCityLayoutTexture(layout){
+  const CANVAS = 1536;
+  const scale = CANVAS/CITY_SIZE;
+  const c = document.createElement('canvas');
+  c.width = c.height = CANVAS;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#3a3d42'; // asphalt everywhere by default
+  ctx.fillRect(0,0,CANVAS,CANVAS);
+
+  // faint asphalt speckle
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  for(let i=0;i<8000;i++){
+    ctx.fillRect(Math.random()*CANVAS, Math.random()*CANVAS, 1.4, 1.4);
+  }
+
+  function toPx(v){ return (v + CITY_SIZE/2)*scale; }
+
+  // block plots (sidewalk + lawn)
+  layout.blocks.forEach(b=>{
+    const x = toPx(b.x - BLOCK/2 + ROAD_W/2);
+    const z = toPx(b.z - BLOCK/2 + ROAD_W/2);
+    const w = (BLOCK-ROAD_W)*scale;
+    ctx.fillStyle = '#9aa0a6'; // sidewalk
+    ctx.fillRect(x,z,w,w);
+    const inset = w*0.14;
+    ctx.fillStyle = b.park ? '#4a6a3a' : '#5b6b46'; // lawn
+    ctx.fillRect(x+inset,z+inset,w-inset*2,w-inset*2);
+  });
+
+  // road centerlines
+  ctx.strokeStyle = 'rgba(255,220,120,0.55)';
+  ctx.lineWidth = Math.max(2, scale*0.35);
+  ctx.setLineDash([scale*2.2, scale*2.2]);
+  for(let i=0;i<=GRID_N;i++){
+    const v = toPx(-CITY_SIZE/2 + i*BLOCK);
+    ctx.beginPath(); ctx.moveTo(v,0); ctx.lineTo(v,CANVAS); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,v); ctx.lineTo(CANVAS,v); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // town plaza in the middle
+  const cx = toPx(0), cz = toPx(0);
+  const rad = BLOCK*0.9*scale;
+  const g = ctx.createRadialGradient(cx,cz,4,cx,cz,rad);
+  g.addColorStop(0,'#c9c2a8');
+  g.addColorStop(1,'#9aa0a6');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx,cz,rad,0,Math.PI*2); ctx.fill();
+
+  // dusty trail toward the portal clearing
+  const pc = layout.portalBlock;
+  const px = toPx(pc.x), pz = toPx(pc.z);
+  ctx.strokeStyle = 'rgba(196,168,112,0.5)';
+  ctx.lineWidth = scale*3.2;
+  ctx.beginPath(); ctx.moveTo(cx,cz); ctx.lineTo(px,pz); ctx.stroke();
+
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  return t;
+}
+
+// ---------------------------------------------------------------------
+// city layout math (shared by ground texture + building placement)
+// ---------------------------------------------------------------------
+function computeCityLayout(){
+  const blocks = [];
+  let portalBlock = null;
+  for(let i=0;i<GRID_N;i++){
+    for(let j=0;j<GRID_N;j++){
+      const x = -CITY_SIZE/2 + BLOCK/2 + i*BLOCK;
+      const z = -CITY_SIZE/2 + BLOCK/2 + j*BLOCK;
+      const isCenter = (i===Math.floor(GRID_N/2) || i===Math.floor(GRID_N/2)-1) &&
+                        (j===Math.floor(GRID_N/2) || j===Math.floor(GRID_N/2)-1);
+      const isCorner = (i===GRID_N-1 && j===0);
+      const block = { x, z, park:false, skip:false };
+      if(isCenter) block.skip = true; // reserve center for the plaza
+      if(isCorner){ block.skip = true; portalBlock = block; }
+      if(!isCenter && !isCorner && Math.random()<0.14) block.park = true;
+      blocks.push(block);
+    }
+  }
+  if(!portalBlock){ portalBlock = blocks[blocks.length-1]; portalBlock.skip = true; }
+  return { blocks, portalBlock };
+}
+
+let cityLayout = null;
+
+async function buildCityGround(tex){
+  cityLayout = computeCityLayout();
+  const groundTex = drawCityLayoutTexture(cityLayout);
+  const geo = new THREE.PlaneGeometry(CITY_SIZE, CITY_SIZE, 1, 1);
+  const mat = new THREE.MeshStandardMaterial({ map: groundTex, roughness:0.95, metalness:0.02 });
+  const ground = new THREE.Mesh(geo, mat);
+  ground.rotation.x = -Math.PI/2;
+  ground.name = 'cityGround';
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // low wall / horizon dressing so the world doesn't feel like it just stops
+  const rim = new THREE.Mesh(
+    new THREE.RingGeometry(CITY_SIZE*0.62, CITY_SIZE*1.4, 48),
+    new THREE.MeshStandardMaterial({color:0xb99b5c, roughness:1})
+  );
+  rim.rotation.x = -Math.PI/2;
+  rim.position.y = -0.05;
+  scene.add(rim);
+
+  await yieldFrame();
+}
+
+async function buildCityBuildings(tex){
+  const windowMat = new THREE.MeshStandardMaterial({ map: tex.window, roughness:0.6, metalness:0.15 });
+  const roofMat = new THREE.MeshStandardMaterial({ map: tex.roof, roughness:0.9 });
+  let count = 0;
+
+  for(const b of cityLayout.blocks){
+    if(b.skip) continue;
+    if(b.park) continue;
+    const plot = BLOCK - ROAD_W - 3;
+    const w = rand(plot*0.45, plot*0.85);
+    const d = rand(plot*0.45, plot*0.85);
+    const distFromCenter = Math.hypot(b.x,b.z);
+    const heightBias = clamp(1.4 - distFromCenter/(CITY_SIZE*0.55), 0.15, 1.4);
+    const h = rand(8, 14) + rand(0,42)*heightBias;
+
+    const geo = new THREE.BoxGeometry(w,h,d);
+    // scale window texture repeat to building size so windows read as real floors
+    const wmat = windowMat.clone();
+    wmat.map = tex.window.clone();
+    wmat.map.needsUpdate = true;
+    wmat.map.repeat.set(Math.max(1,Math.round(w/4)), Math.max(2,Math.round(h/4)));
+    const building = new THREE.Mesh(geo, [wmat,wmat,roofMat,roofMat,wmat,wmat]);
+    building.position.set(b.x + rand(-2,2), h/2, b.z + rand(-2,2));
+    building.rotation.y = choice([0, Math.PI/2]);
+    building.castShadow = true;
+    building.receiveShadow = true;
+    scene.add(building);
+
+    const kind = h < 22 ? choice(['HOUSE','SHOP','CLINIC','CAFE']) : choice(['APARTMENTS','OFFICE','LAB']);
+    const doorMat = new THREE.MeshStandardMaterial({color:kind==='SHOP'?0x37e6ff:0x8d5b3f, emissive:kind==='SHOP'?0x073c48:0x000000, emissiveIntensity:0.8});
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.8,0.12), doorMat);
+    door.position.set(building.position.x,0.9,building.position.z+d/2+0.07);
+    scene.add(door);
+    const sign = new THREE.Mesh(
+      new THREE.BoxGeometry(Math.min(2.8,w*0.65),0.38,0.08),
+      new THREE.MeshStandardMaterial({color:0x18212a, emissive:kind==='SHOP'?0x0b7080:0x172331, emissiveIntensity:0.8})
+    );
+    sign.position.set(building.position.x,Math.min(3.2,h-1),building.position.z+d/2+0.08);
+    scene.add(sign);
+
+    const interior = makeBuildingInterior(w,d,kind);
+    interior.position.set(building.position.x,0,building.position.z);
+    interior.visible = false;
+    scene.add(interior);
+
+    const record = {
+      group:building, door, sign, interior, kind, x:building.position.x, z:building.position.z,
+      w, d, h, entrance:new THREE.Vector3(building.position.x,0,building.position.z+d/2+1.25)
+    };
+    buildings.push(record);
+    buildingColliders.push({ x:building.position.x, z:building.position.z, hw:w/2+0.6, hd:d/2+0.6, building:record });
+
+    count++;
+    if(count % 6 === 0) await yieldFrame();
+  }
+
+  // a modest ring of streetlamps + fountain centerpiece
+  const fountainBase = new THREE.Mesh(new THREE.CylinderGeometry(4,4.4,1.2,20), new THREE.MeshStandardMaterial({color:0xcfc9b0}));
+  fountainBase.position.set(0,0.6,0);
+  fountainBase.receiveShadow = true;
+  scene.add(fountainBase);
+  const fountainMid = new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.9,3,10), new THREE.MeshStandardMaterial({color:0x9aa9b8, metalness:0.3, roughness:0.5}));
+  fountainMid.position.set(0,2.1,0);
+  fountainMid.castShadow = true;
+  scene.add(fountainMid);
+
+  // community bulletin board -- a real, walk-up-and-read notice board with
+  // rotating live text, not a static prop
+  const boardPost = new THREE.Mesh(new THREE.BoxGeometry(0.18,2.0,0.18), new THREE.MeshStandardMaterial({color:0x3a2e22}));
+  boardPost.position.set(9,1.0,9);
+  const boardFace = new THREE.Mesh(new THREE.BoxGeometry(2.6,1.7,0.12), new THREE.MeshStandardMaterial({color:0x1c2530, emissive:0x0b141c, emissiveIntensity:0.6}));
+  boardFace.position.set(9,2.05,9);
+  boardPost.castShadow = true; boardFace.castShadow = true; boardFace.receiveShadow = true;
+  scene.add(boardPost, boardFace);
+  communityBoard = { position: new THREE.Vector3(9,0,9) };
+}
+
+function makeBuildingInterior(w,d,kind){
+  const g = new THREE.Group();
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(Math.max(4,w-0.7),0.12,Math.max(4,d-0.7)), new THREE.MeshStandardMaterial({color:0x3d4850,roughness:0.9}));
+  floor.position.y=0.06;
+  const wallMat = new THREE.MeshStandardMaterial({color:0x202d36,roughness:0.9});
+  const wallA = new THREE.Mesh(new THREE.BoxGeometry(w,2.8,0.14),wallMat);
+  const wallB = wallA.clone(), wallC = new THREE.Mesh(new THREE.BoxGeometry(0.14,2.8,d),wallMat), wallD=wallC.clone();
+  wallA.position.set(0,1.4,-d/2); wallB.position.set(0,1.4,d/2); wallC.position.set(-w/2,1.4,0); wallD.position.set(w/2,1.4,0);
+  const ceiling = new THREE.Mesh(new THREE.BoxGeometry(w,0.12,d),new THREE.MeshStandardMaterial({color:0x101820}));
+  ceiling.position.y=2.8;
+  const light = new THREE.PointLight(kind==='LAB'?0x77ddff:0xffd08a,1.4,15);
+  light.position.set(0,2.5,0);
+  g.add(floor,wallA,wallB,wallC,wallD,ceiling,light);
+
+  const table = new THREE.Mesh(new THREE.BoxGeometry(Math.min(2.4,w*0.45),0.16,Math.min(1.2,d*0.25)),new THREE.MeshStandardMaterial({color:0x7e5538}));
+  table.position.set(0,0.75,0);
+  const legGeo = new THREE.BoxGeometry(0.12,0.75,0.12);
+  [[-0.8,-0.35],[0.8,-0.35],[-0.8,0.35],[0.8,0.35]].forEach(([x,z])=>{
+    const leg = new THREE.Mesh(legGeo,table.material); leg.position.set(x,0.38,z); g.add(leg);
+  });
+  g.add(table);
+  const console = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.45,0.5),new THREE.MeshStandardMaterial({color:kind==='LAB'?0x35c5d8:0x4d5c66,emissive:kind==='LAB'?0x073d4a:0,emissiveIntensity:1}));
+  console.position.set(Math.min(w/2-0.6,2),0.3,-Math.min(d/2-0.5,1.5));
+  g.add(console);
+  return g;
+}
+
+async function buildCityProps(tex){
+  const trunkGeo = new THREE.CylinderGeometry(0.25,0.35,2.4,7);
+  const trunkMat = new THREE.MeshStandardMaterial({map:tex.bark, roughness:1});
+  const leafGeo = new THREE.ConeGeometry(1.6,3.4,8);
+  const leafMat = new THREE.MeshStandardMaterial({map:tex.leaf, roughness:1});
+  const lampPoleGeo = new THREE.CylinderGeometry(0.08,0.1,4.4,6);
+  const lampPoleMat = new THREE.MeshStandardMaterial({color:0x24262b, metalness:0.6, roughness:0.4});
+  const lampHeadGeo = new THREE.SphereGeometry(0.24,10,10);
+
+  let count=0;
+  for(const b of cityLayout.blocks){
+    if(b.skip) continue;
+    const n = b.park ? 6 : irand(1,3);
+    for(let i=0;i<n;i++){
+      const tx = b.x + rand(-BLOCK*0.32, BLOCK*0.32);
+      const tz = b.z + rand(-BLOCK*0.32, BLOCK*0.32);
+      if(blockedByBuilding(tx,tz,1.2)) continue;
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(trunkGeo, trunkMat); trunk.position.y=1.2;
+      const leaf = new THREE.Mesh(leafGeo, leafMat); leaf.position.y=3.2;
+      tree.add(trunk, leaf);
+      tree.position.set(tx,0,tz);
+      scene.add(tree);
+      props.trees.push(tree);
+    }
+    count++;
+    if(count%5===0) await yieldFrame();
+  }
+
+  // lamps along the main plaza ring
+  for(let i=0;i<10;i++){
+    const ang = (i/10)*Math.PI*2;
+    const lx = Math.cos(ang)*BLOCK*1.05, lz = Math.sin(ang)*BLOCK*1.05;
+    const lamp = new THREE.Group();
+    const pole = new THREE.Mesh(lampPoleGeo, lampPoleMat); pole.position.y=2.2;
+    const headMat = new THREE.MeshStandardMaterial({color:0xffdca0, emissive:0x000000, emissiveIntensity:0});
+    const head = new THREE.Mesh(lampHeadGeo, headMat); head.position.y=4.5;
+    lamp.add(pole, head);
+    lamp.position.set(lx,0,lz);
+    scene.add(lamp);
+    props.lamps.push({group:lamp, mat:headMat});
+  }
+  await yieldFrame();
+}
+
+function blockedByBuilding(x,z,margin){
+  for(const b of buildingColliders){
+    if(b.building && insideBuilding===b.building) continue;
+    if(Math.abs(x-b.x) < b.hw+margin && Math.abs(z-b.z) < b.hd+margin) return true;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------
+// NPCs
+// ---------------------------------------------------------------------
+const NPC_LINES = [
+  { name:'Old Sam', lines:[
+      "You look lost, kid. Everyone does, this time of night.",
+      "Funny thing -- out past the east lot, the sky's been buzzing green. Nobody talks about it.",
+      "I'm not saying it's aliens. I'm saying I stopped walking my dog out there.",
+  ]},
+  { name:'Marge', lines:[
+      "Rent's up again. Again! At this point I'm renting air.",
+      "You hear the sirens last night? No? Lucky you.",
+      "There's a weird light near the edge of town. Probably just kids. Probably.",
+  ]},
+  { name:'Deshawn', lines:[
+      "Bro. BRO. Did you see that thing move behind the water tower?",
+      "I'm not a coward, I just have very fast, very reasonable legs.",
+      "If you're heading east, take a jacket. And maybe a will.",
+  ]},
+  { name:'Nadia', lines:[
+      "This city, I swear, held together with duct tape and vibes.",
+      "You look like the kind of guy something weird happens to. No offense.",
+      "Be careful out there tonight. It doesn't feel like a normal Tuesday.",
+  ]},
+  { name:'Big Tony', lines:[
+      "Hey! You seen a glowing hole in the ground near the lot? No? Good. Keep it that way.",
+      "I sell hot dogs. I do not sell answers about the sky. Both are five bucks though.",
+      "Something's coming. I can feel it in my knees. My knees are never wrong.",
+  ]},
+];
+
+function createHumanoid(opts){
+  opts = opts||{};
+  const skin = opts.skin || 0xd8a878;
+  const shirt = opts.shirt || 0x3355aa;
+  const pants = opts.pants || 0x2b2b33;
+  const gender = opts.gender || choice(['female','male']);
+  const g = new THREE.Group();
+
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.24,0.7,8), new THREE.MeshStandardMaterial({color:shirt, roughness:0.8}));
+  torso.position.y = 1.15;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22,12,12), new THREE.MeshStandardMaterial({color:skin, roughness:0.9}));
+  head.position.y = 1.68;
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.235,12,8,0,Math.PI*2,0,Math.PI*0.62), new THREE.MeshStandardMaterial({color:gender==='female'?0x25170f:0x3a2a20,roughness:0.9}));
+  hair.position.y = 1.73;
+  const hip = new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.22,0.22,8), new THREE.MeshStandardMaterial({color:pants}));
+  hip.position.y = 0.78;
+
+  function limb(len,rad,color){
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*0.85,len,6), new THREE.MeshStandardMaterial({color}));
+    m.geometry.translate(0,-len/2,0);
+    return m;
+  }
+  const legL = limb(0.68,0.09,pants); legL.position.set(0.12,0.78,0);
+  const legR = limb(0.68,0.09,pants); legR.position.set(-0.12,0.78,0);
+  const armL = limb(0.55,0.075,skin); armL.position.set(0.36,1.42,0);
+  const armR = limb(0.55,0.075,skin); armR.position.set(-0.36,1.42,0);
+
+  const accessory = gender==='female'
+    ? new THREE.Mesh(new THREE.TorusGeometry(0.24,0.035,6,12),new THREE.MeshStandardMaterial({color:0xffd27a,emissive:0x5a3500,emissiveIntensity:0.5}))
+    : new THREE.Mesh(new THREE.BoxGeometry(0.28,0.035,0.18),new THREE.MeshStandardMaterial({color:0x18232b,metalness:0.4}));
+  accessory.position.set(0, gender==='female'?1.67:1.88, gender==='female'?0.12:0);
+  if(gender==='male') accessory.rotation.x=-0.16;
+  g.add(torso,head,hair,hip,legL,legR,armL,armR,accessory);
+  return { group:g, head, torso, hair, legL, legR, armL, armR, gender };
+}
+
+async function spawnNPCs(){
+  let idx=0;
+  for(const b of cityLayout.blocks){
+    if(b.skip || b.park) continue;
+    if(Math.random()>0.68) continue;
+    const base = NPC_LINES[idx % NPC_LINES.length];
+    const data = {name:idx < NPC_LINES.length ? base.name : base.name+' '+(idx+1), lines:base.lines};
+    idx++;
+    const gender = idx%2 ? 'female' : 'male';
+    const shirtColor = choice([0x3355aa,0x9a4444,0x448866,0x8a6a2f,0x6a4a8a]);
+    const parts = createHumanoid({ gender, shirt: shirtColor });
+    const x = b.x + rand(-6,6), z = b.z + rand(-6,6);
+    parts.group.position.set(x,0,z);
+    parts.group.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
+    scene.add(parts.group);
+    const wpA = new THREE.Vector3(x,0,z);
+    const wpB = new THREE.Vector3(x+rand(-8,8),0,z+rand(-8,8));
+    npcs.push({
+      parts, name:data.name, gender, shirtColor, lines:data.lines, lineIdx:0,
+      pos:parts.group.position, yaw:0,
+      wpA, wpB, target:wpB, speed:rand(0.8,1.3), walkT:0, travelState:'walking',
+      home:wpA.clone(), block:b, met:false,
+      destination:choice(['home','market','plaza','station']), relationship:0,
+      friend:false, following:false, visitCooldown:rand(30,70), lastActivity:'walking',
+      convoOpenerIdx:0
+    });
+  }
+  await yieldFrame();
+}
+
+// ---------------------------------------------------------------------
+// portals
+// ---------------------------------------------------------------------
+function makePortalRing(color){
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(2.2,0.28,16,32),
+    new THREE.MeshStandardMaterial({color, emissive:color, emissiveIntensity:1.4, roughness:0.3})
+  );
+  ring.rotation.x = Math.PI/2;
+  const glow = new THREE.PointLight(color, 2.2, 20);
+  glow.position.y = 1.5;
+  g.add(ring, glow);
+  g.userData.ring = ring;
+  return g;
+}
+
+function buildPortals(){
+  const pc = cityLayout.portalBlock;
+  cityPortal = makePortalRing(0x37e6ff);
+  cityPortal.position.set(pc.x, 1.6, pc.z);
+  scene.add(cityPortal);
+
+  // a couple of ominous glowing rocks near the city portal, foreshadowing
+  for(let i=0;i<4;i++){
+    const rock = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(rand(0.4,0.9),0),
+      new THREE.MeshStandardMaterial({color:0x6a3fae, emissive:0x39187a, emissiveIntensity:0.8, roughness:0.6})
+    );
+    rock.position.set(pc.x+rand(-5,5),0.4,pc.z+rand(-5,5));
+    scene.add(rock);
+  }
+
+  alienPortal = makePortalRing(0xff7a1a);
+  alienPortal.position.copy(ALIEN_OFFSET).add(new THREE.Vector3(0,1.6,-ALIEN_SIZE*0.35));
+  scene.add(alienPortal);
+}
+
+// ---------------------------------------------------------------------
+// alien world
+// ---------------------------------------------------------------------
+const ALIEN_LINES_FRIENDLY = [
+  "Glorpnak greets you. Your planet's Wi-Fi is embarrassing, by the way.",
+  "We do not eat cows. That rumor is slander. We simply *borrow* them.",
+  "You smell like anxiety and gas station coffee. We like you.",
+];
+const ALIEN_LINES_HOSTILE_ESCAPE = [
+  "IT SAW YOU. RUN.",
+  "That one doesn't want to talk. RUN.",
+  "Nope nope nope -- the portal, NOW.",
+];
+
+let planetGround=null, planetDome=null, planetLight=null;
+const alienFloaters=[], alienPlants=[];
+let alienUFO=null;
+
+function buildAlienWorld(tex, key){
+  key = key || 'verdari';
+  const def = PLANET_DEFS[key] || PLANET_DEFS.verdari;
+  currentPlanetKey = key;
+
+  // tear down whatever planet was here before (same physical bounds,
+  // freshly generated content -- a real reskin, not a pre-baked swap)
+  [planetGround, planetDome, planetLight, alienUFO, ufoPad].forEach(o=>{ if(o) scene.remove(o); });
+  alienFloaters.splice(0).forEach(o=>scene.remove(o));
+  alienPlants.splice(0).forEach(o=>scene.remove(o));
+  creatures.splice(0).forEach(c=>scene.remove(c.group));
+  alienUFO=null; ufoPad=null;
+
+  const groundTex = makeAlienGroundTexture(def.groundBase, def.groundDark, def.spotA, def.spotB);
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(ALIEN_SIZE, ALIEN_SIZE),
+    new THREE.MeshStandardMaterial({map:groundTex, roughness:1})
+  );
+  ground.rotation.x = -Math.PI/2;
+  ground.position.copy(ALIEN_OFFSET);
+  scene.add(ground);
+  planetGround = ground;
+
+  const alienDome = new THREE.Mesh(
+    new THREE.SphereGeometry(ALIEN_SIZE*1.3, 16, 16, 0, Math.PI*2, 0, Math.PI/2),
+    new THREE.MeshBasicMaterial({color:def.domeColor, side:THREE.BackSide})
+  );
+  alienDome.position.copy(ALIEN_OFFSET);
+  scene.add(alienDome);
+  planetDome = alienDome;
+
+  const alienLight = new THREE.PointLight(def.lightColor, 1.4, ALIEN_SIZE*1.2);
+  alienLight.position.copy(ALIEN_OFFSET).add(new THREE.Vector3(0,40,0));
+  scene.add(alienLight);
+  planetLight = alienLight;
+
+  // floating rocks + weird plants, colored to this planet's palette
+  for(let i=0;i<28;i++){
+    const r = rand(0.6,2.4);
+    const rock = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(r,0),
+      new THREE.MeshStandardMaterial({color:choice(def.rockColors), roughness:0.5, metalness:0.2, emissive:0x150822, emissiveIntensity:0.4})
+    );
+    const px = ALIEN_OFFSET.x + rand(-ALIEN_SIZE*0.45,ALIEN_SIZE*0.45);
+    const pz = ALIEN_OFFSET.z + rand(-ALIEN_SIZE*0.45,ALIEN_SIZE*0.45);
+    rock.position.set(px, rand(0.5,10), pz);
+    rock.userData.floaty = { base:rock.position.y, speed:rand(0.3,0.8), amp:rand(0.4,1.4), phase:rand(0,10) };
+    scene.add(rock);
+    rock.userData.isFloatingRock = true;
+    alienFloaters.push(rock);
+  }
+  for(let i=0;i<22;i++){
+    const plant = new THREE.Group();
+    const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.14,rand(1,2.4),6), new THREE.MeshStandardMaterial({color:0x2f6e4a, emissive:0x0b3a20, emissiveIntensity:0.5}));
+    stalk.position.y = stalk.geometry.parameters.height/2;
+    const bulb = new THREE.Mesh(new THREE.TorusGeometry(0.35,0.12,8,12), new THREE.MeshStandardMaterial({color:def.plantColor, emissive:def.plantColor, emissiveIntensity:0.9}));
+    bulb.position.y = stalk.geometry.parameters.height;
+    bulb.rotation.x = Math.PI/2;
+    plant.add(stalk,bulb);
+    plant.position.set(ALIEN_OFFSET.x+rand(-ALIEN_SIZE*0.45,ALIEN_SIZE*0.45), 0, ALIEN_OFFSET.z+rand(-ALIEN_SIZE*0.45,ALIEN_SIZE*0.45));
+    plant.userData.sway = rand(0,10);
+    scene.add(plant);
+    alienPlants.push(plant);
+  }
+
+  // a lazy UFO relay for flavor -- every planet has one now, so there's
+  // always a second, faster way home besides the portal
+  const ufo = new THREE.Group();
+  const saucer = new THREE.Mesh(new THREE.CylinderGeometry(3,4.5,0.8,16), new THREE.MeshStandardMaterial({color:0x8899aa, metalness:0.7, roughness:0.3}));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(1.6,16,12,0,Math.PI*2,0,Math.PI/2), new THREE.MeshStandardMaterial({color:0xbfe8ff, transparent:true, opacity:0.6}));
+  dome.position.y=0.4;
+  const glow = new THREE.PointLight(0x66ffcc,1.4,20);
+  ufo.add(saucer,dome,glow);
+  ufo.position.copy(ALIEN_OFFSET).add(new THREE.Vector3(0,26,0));
+  scene.add(ufo);
+  alienUFO = ufo;
+  const pad = new THREE.Group();
+  const padBase = new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.8,0.25,24),new THREE.MeshStandardMaterial({color:0x283746,metalness:0.5}));
+  const padRing = new THREE.Mesh(new THREE.TorusGeometry(2.3,0.12,10,32),new THREE.MeshStandardMaterial({color:0x66ffcc,emissive:0x168f75,emissiveIntensity:1.2}));
+  padRing.rotation.x=Math.PI/2;
+  pad.add(padBase,padRing); pad.position.copy(alienPortal.position).add(new THREE.Vector3(0,-1.45,7)); scene.add(pad);
+  ufoPad = pad;
+
+  // creatures, in the mix this planet calls for
+  for(let i=0;i<def.friendlies;i++) creatures.push(spawnAlienCreature(false));
+  for(let i=0;i<def.hostiles;i++) creatures.push(spawnAlienCreature(true));
+}
+
+function switchPlanet(key){
+  if(!PLANET_DEFS[key] || key===currentPlanetKey) return;
+  nextPlanetKey = key;
+  startSpaceFlight('toPlanet', key);
+}
+
+// ---------------------------------------------------------------------
+// space flight -- an actual flyable corridor between the city and
+// whichever planet you pick, not an instant teleport. Forward motion is
+// automatic (rail-style); you steer left/right/up/down for real, with
+// real consequences if you clip an asteroid. It's a short trip by
+// design (space games live or die on not overstaying their welcome),
+// but it's genuinely piloted, every time, not a fixed-length cutscene --
+// it ends when you actually cover the distance.
+// ---------------------------------------------------------------------
+let gameMode = 'ground'; // 'ground' | 'space'
+const SPACE_ORIGIN = new THREE.Vector3(-20000,0,0);
+const SPACE_LENGTH = 340;
+const SPACE_RADIUS = 16;
+let spaceShip = null;
+let spaceAsteroids = [];
+let spaceOriginSphere = null, spaceDestSphere = null, spaceStars = null;
+let spaceState = { active:false, direction:'toPlanet', targetKey:'verdari', z:0, x:0, y:0, vx:0, vy:0, speed:34, shake:0 };
+
+function buildSpaceRoute(){
+  const starGeo = new THREE.BufferGeometry();
+  const n = 1400;
+  const pos = new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    pos[i*3]   = rand(-900,900);
+    pos[i*3+1] = rand(-500,500);
+    pos[i*3+2] = SPACE_ORIGIN.z - rand(-200, SPACE_LENGTH+900);
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  spaceStars = new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xffffff, size:2, sizeAttenuation:false}));
+  spaceStars.position.x = SPACE_ORIGIN.x;
+  scene.add(spaceStars);
+
+  spaceOriginSphere = new THREE.Mesh(new THREE.SphereGeometry(26,20,16), new THREE.MeshStandardMaterial({color:0x3a72c9, emissive:0x0d2040, emissiveIntensity:0.5, roughness:0.6}));
+  spaceOriginSphere.position.copy(SPACE_ORIGIN).add(new THREE.Vector3(0,0,60));
+  scene.add(spaceOriginSphere);
+
+  spaceDestSphere = new THREE.Mesh(new THREE.SphereGeometry(30,20,16), new THREE.MeshStandardMaterial({color:0x8a1f2a, emissive:0x3a0d0d, emissiveIntensity:0.5, roughness:0.6}));
+  spaceDestSphere.position.copy(SPACE_ORIGIN).add(new THREE.Vector3(0,0,-SPACE_LENGTH-60));
+  scene.add(spaceDestSphere);
+
+  const shipMat = new THREE.MeshStandardMaterial({color:0xd8dde2, metalness:0.7, roughness:0.3});
+  const ship = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.ConeGeometry(0.8,3.2,8), shipMat);
+  hull.rotation.x = Math.PI/2;
+  const wingL = new THREE.Mesh(new THREE.BoxGeometry(2.6,0.1,1.1), new THREE.MeshStandardMaterial({color:0x2c3540, metalness:0.5}));
+  wingL.position.set(1.4,0,0.3);
+  const wingR = wingL.clone(); wingR.position.x=-1.4;
+  const engineGlow = new THREE.PointLight(0x37e6ff, 1.6, 12);
+  engineGlow.position.set(0,0,1.8);
+  const engineCone = new THREE.Mesh(new THREE.ConeGeometry(0.3,0.9,8), new THREE.MeshStandardMaterial({color:0x37e6ff, emissive:0x37e6ff, emissiveIntensity:1.5}));
+  engineCone.rotation.x = -Math.PI/2; engineCone.position.set(0,0,1.8);
+  ship.add(hull,wingL,wingR,engineGlow,engineCone);
+  ship.visible = false;
+  scene.add(ship);
+  spaceShip = ship;
+
+  for(let i=0;i<16;i++){
+    const rock = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(rand(1.0,3.2),0),
+      new THREE.MeshStandardMaterial({color:choice([0x555a63,0x6b5a4a,0x4a5560]), roughness:0.8})
+    );
+    rock.userData.baseX = rand(-SPACE_RADIUS,SPACE_RADIUS);
+    rock.userData.baseY = rand(-SPACE_RADIUS*0.6,SPACE_RADIUS*0.6);
+    rock.userData.z = rand(-40,-SPACE_LENGTH+40);
+    rock.userData.spin = rand(0.2,1.0);
+    rock.userData.hitCooldown = 0;
+    rock.visible = false;
+    scene.add(rock);
+    spaceAsteroids.push(rock);
+  }
+}
+
+function startSpaceFlight(direction, targetKey){
+  if(inCar){ inCar=false; stopEngine(); if(carParts && carParts.underGlow) carParts.underGlow.intensity=0; }
+  const fade = document.getElementById('fade');
+  fade.style.opacity = 1;
+  playPortalWhoosh();
+  closePhone(); closeMap();
+  setTimeout(()=>{
+    gameMode = 'space';
+    spaceState.active = true;
+    spaceState.direction = direction;
+    spaceState.targetKey = targetKey;
+    spaceState.z = 0; spaceState.x = 0; spaceState.y = 0; spaceState.vx = 0; spaceState.vy = 0; spaceState.speed = 34;
+
+    spaceDestSphere.material.color.set(direction==='toPlanet' ? PLANET_DEFS[targetKey].domeColor : 0x3a72c9);
+    spaceDestSphere.material.emissive.set(direction==='toPlanet' ? PLANET_DEFS[targetKey].lightColor : 0x0d2040);
+
+    spaceAsteroids.forEach(a=>{
+      a.userData.baseX = rand(-SPACE_RADIUS,SPACE_RADIUS);
+      a.userData.baseY = rand(-SPACE_RADIUS*0.6,SPACE_RADIUS*0.6);
+      a.userData.z = rand(-40,-SPACE_LENGTH+40);
+      a.userData.hitCooldown = 0;
+      a.visible = true;
+      a.position.set(SPACE_ORIGIN.x+a.userData.baseX, a.userData.baseY, SPACE_ORIGIN.z+a.userData.z);
+    });
+
+    player.visible = false; car.visible = false;
+    spaceShip.visible = true;
+    spaceShip.position.set(SPACE_ORIGIN.x, 0, SPACE_ORIGIN.z);
+    setObjective('IN FLIGHT // steer with WASD, dodge the rocks.');
+    fade.style.opacity = 0;
+  }, 480);
+}
+
+function updateSpaceFlight(dt){
+  if(!spaceState.active) return;
+  spaceState.shake = Math.max(0, spaceState.shake - dt*2);
+
+  let steerX=0, steerY=0;
+  if(keys['KeyA']||keys['ArrowLeft']) steerX -= 1;
+  if(keys['KeyD']||keys['ArrowRight']) steerX += 1;
+  if(keys['KeyW']||keys['ArrowUp']) steerY += 1;
+  if(keys['KeyS']||keys['ArrowDown']) steerY -= 1;
+  if(joyVec.x) steerX += joyVec.x;
+  if(joyVec.y) steerY -= joyVec.y;
+  steerX = clamp(steerX,-1,1); steerY = clamp(steerY,-1,1);
+  const boost = (keys['ShiftLeft']||keys['ShiftRight']);
+  spaceState.speed = boost ? 52 : 34;
+
+  spaceState.vx = lerp(spaceState.vx, steerX*14, Math.min(1,dt*4));
+  spaceState.vy = lerp(spaceState.vy, steerY*10, Math.min(1,dt*4));
+  spaceState.x = clamp(spaceState.x + spaceState.vx*dt, -SPACE_RADIUS, SPACE_RADIUS);
+  spaceState.y = clamp(spaceState.y + spaceState.vy*dt, -SPACE_RADIUS*0.6, SPACE_RADIUS*0.6);
+  spaceState.z -= spaceState.speed*dt;
+
+  spaceShip.position.set(SPACE_ORIGIN.x+spaceState.x, spaceState.y, SPACE_ORIGIN.z+spaceState.z);
+  spaceShip.rotation.z = lerp(spaceShip.rotation.z, -steerX*0.6, Math.min(1,dt*6));
+  spaceShip.rotation.x = lerp(spaceShip.rotation.x, steerY*0.35, Math.min(1,dt*6));
+
+  spaceAsteroids.forEach(a=>{
+    if(!a.visible) return;
+    a.rotation.x += dt*a.userData.spin*0.5;
+    a.rotation.y += dt*a.userData.spin;
+    a.userData.hitCooldown = Math.max(0, a.userData.hitCooldown - dt);
+    const dx = spaceShip.position.x-a.position.x, dy = spaceShip.position.y-a.position.y, dz = spaceShip.position.z-a.position.z;
+    const dist = Math.sqrt(dx*dx+dy*dy+dz*dz);
+    if(dist < a.geometry.parameters.radius+1.6 && a.userData.hitCooldown<=0){
+      a.userData.hitCooldown = 2.5;
+      spaceState.speed = Math.max(18, spaceState.speed-6);
+      spaceState.shake = 0.4;
+      showToast('ASTEROID CLIPPED THE HULL!');
+      playNoiseBurst(0.3,0.14,500);
+    }
+  });
+
+  const progress = clamp(-spaceState.z/SPACE_LENGTH, 0, 1);
+  const destName = spaceState.direction==='toPlanet' ? PLANET_DEFS[spaceState.targetKey].name.toUpperCase() : 'THE CITY';
+  setObjective('APPROACHING '+destName+' -- '+Math.round(progress*100)+'%');
+
+  if(progress>=1) arriveFromSpace();
+}
+
+function arriveFromSpace(){
+  spaceState.active = false;
+  const fade = document.getElementById('fade');
+  fade.style.opacity = 1;
+  playPortalWhoosh();
+  setTimeout(()=>{
+    gameMode = 'ground';
+    spaceShip.visible = false;
+    spaceAsteroids.forEach(a=>a.visible=false);
+    player.visible = true; car.visible = true;
+
+    if(spaceState.direction==='toPlanet'){
+      inZone = 'alien';
+      if(spaceState.targetKey !== currentPlanetKey) buildAlienWorld(gameTex, spaceState.targetKey);
+      const dest = alienPortal.position.clone().add(new THREE.Vector3(0,-1.6,6));
+      player.position.copy(dest); playerPos.copy(dest);
+      startAmbient(true);
+      showToast('ARRIVED AT '+PLANET_DEFS[currentPlanetKey].name.toUpperCase());
+    } else {
+      inZone = 'city';
+      const dest = cityPortal.position.clone().add(new THREE.Vector3(0,-1.6,6));
+      player.position.copy(dest); playerPos.copy(dest);
+      startAmbient(false);
+      missionFlags.escapedOnce = true;
+      showToast('BACK HOME. FOR NOW.');
+    }
+    fade.style.opacity = 0;
+  }, 480);
+}
+
+function spawnAlienCreature(hostile){
+  const g = new THREE.Group();
+  const gender = choice(['female','male','neutral']);
+  const bodyColor = hostile ? 0x8a1f2a : 0x8ad4c0;
+  const body = new THREE.Mesh(new THREE.IcosahedronGeometry(gender==='neutral'?0.7:0.8,1), new THREE.MeshStandardMaterial({
+    color:bodyColor, emissive: hostile?0x4a0a10:0x1f4a3c, emissiveIntensity:0.7, roughness:0.5
+  }));
+  g.add(body);
+  const eyeMat = new THREE.MeshStandardMaterial({color: hostile?0xff2222:0x222222, emissive: hostile?0xff2222:0x000000, emissiveIntensity: hostile?1.5:0});
+  for(let i=0;i<2;i++){
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8), eyeMat);
+    eye.position.set(i===0?0.28:-0.28, 0.25, 0.55);
+    g.add(eye);
+  }
+  if(hostile){
+    for(let i=0;i<5;i++){
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.1,0.5,5), new THREE.MeshStandardMaterial({color:0x501018}));
+      const ang = (i/5)*Math.PI*2;
+      spike.position.set(Math.cos(ang)*0.6, 0.1, Math.sin(ang)*0.6);
+      spike.rotation.x = Math.PI/2.2;
+      spike.lookAt(g.position);
+      g.add(spike);
+    }
+  }
+  const crest = new THREE.Mesh(new THREE.TorusGeometry(0.34,0.06,6,12),new THREE.MeshStandardMaterial({color:gender==='female'?0xff8ee8:gender==='male'?0x76d7ff:0xc9c9d8,emissive:0x331844,emissiveIntensity:0.8}));
+  crest.position.y=0.65; crest.rotation.x=Math.PI/2; g.add(crest);
+  const px = ALIEN_OFFSET.x+rand(-ALIEN_SIZE*0.35,ALIEN_SIZE*0.35);
+  const pz = ALIEN_OFFSET.z+rand(-ALIEN_SIZE*0.35,ALIEN_SIZE*0.35);
+  g.position.set(px,0.7,pz);
+  scene.add(g);
+  return {
+    group:g, hostile, gender, state:'wander', pos:g.position,
+    wanderTarget:new THREE.Vector3(px,0.7,pz), wanderT:0,
+    speed: hostile?3.1:1.0, chaseCooldown:0, talked:false
+  };
+}
+
+// ---------------------------------------------------------------------
+// player
+// ---------------------------------------------------------------------
+function buildPlayer(){
+  playerParts = createHumanoid({ shirt:0xff7a1a, pants:0x24262e, skin:0xd8a878 });
+  player = playerParts.group;
+  player.position.copy(playerPos);
+  player.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
+  scene.add(player);
+
+  player.userData.shadow = makeBlobShadow();
+  scene.add(player.userData.shadow);
+}
+
+function makeBlobShadow(){
+  const c = document.createElement('canvas'); c.width=c.height=64;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(32,32,2,32,32,30);
+  g.addColorStop(0,'rgba(0,0,0,0.45)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,64,64);
+  const t = new THREE.CanvasTexture(c);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.1,1.1), new THREE.MeshBasicMaterial({map:t, transparent:true, depthWrite:false}));
+  m.rotation.x = -Math.PI/2;
+  m.position.y = 0.02;
+  return m;
+}
+
+// ---------------------------------------------------------------------
+// vehicle
+// ---------------------------------------------------------------------
+function buildVehicle(){
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({color:0xcc2e2e, metalness:0.4, roughness:0.35});
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.9,0.6,3.6), bodyMat);
+  body.position.y = 0.55;
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.55,1.8), new THREE.MeshStandardMaterial({color:0x1a2230, metalness:0.2, roughness:0.5, transparent:true, opacity:0.85}));
+  cabin.position.set(0,1.0,-0.2);
+  const wheelGeo = new THREE.CylinderGeometry(0.36,0.36,0.34,14);
+  const wheelMat = new THREE.MeshStandardMaterial({color:0x111214});
+  const wheels = [];
+  [[0.9,-1.15],[-0.9,-1.15],[0.9,1.15],[-0.9,1.15]].forEach(([x,z])=>{
+    const w = new THREE.Mesh(wheelGeo, wheelMat);
+    w.rotation.z = Math.PI/2;
+    w.position.set(x,0.36,z);
+    g.add(w);
+    wheels.push(w);
+  });
+  const lightMat = new THREE.MeshStandardMaterial({color:0xffffee, emissive:0xffffcc, emissiveIntensity:1.2});
+  const lightL = new THREE.Mesh(new THREE.SphereGeometry(0.11,8,8), lightMat); lightL.position.set(0.6,0.55,1.82);
+  const lightR = lightL.clone(); lightR.position.x=-0.6;
+  const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.55,0.12,0.28),new THREE.MeshStandardMaterial({color:0x171b20,metalness:0.7}));
+  spoiler.position.set(0,1.0,-1.62);
+  const underGlow = new THREE.PointLight(0x37e6ff,0.0,8);
+  underGlow.position.y=0.2;
+  g.add(body,cabin,lightL,lightR,spoiler,underGlow);
+  g.position.copy(carState.pos);
+  g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  scene.add(g);
+  car = g;
+  carParts = { wheels, body, underGlow };
+  car.userData.shadow = makeBlobShadow();
+  car.userData.shadow.scale.set(3.4,2.6,1);
+  scene.add(car.userData.shadow);
+  buildTrafficCars();
+}
+
+function makeTrafficCar(color, x, z, route, phase){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({color,metalness:0.35,roughness:0.45});
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.45,2.8),mat); body.position.y=0.48;
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.42,1.35),new THREE.MeshStandardMaterial({color:0x21303e,transparent:true,opacity:0.88}));
+  cabin.position.set(0,0.82,-0.12);
+  const wheelGeo = new THREE.CylinderGeometry(0.28,0.28,0.23,10);
+  const wheels=[];
+  [[0.72,-0.88],[-0.72,-0.88],[0.72,0.88],[-0.72,0.88]].forEach(([wx,wz])=>{
+    const wheel=new THREE.Mesh(wheelGeo,new THREE.MeshStandardMaterial({color:0x111214})); wheel.rotation.z=Math.PI/2; wheel.position.set(wx,0.3,wz); g.add(wheel); wheels.push(wheel);
+  });
+  g.add(body,cabin);
+  g.position.set(x,0,z);
+  g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
+  scene.add(g);
+  const shadow=makeBlobShadow(); shadow.scale.set(2.5,1.9,1); scene.add(shadow);
+  return {group:g,wheels,shadow,route,routeIndex:0,phase,speed:rand(3.2,5.4),yaw:0};
+}
+
+function buildTrafficCars(){
+  const routes=[
+    [new THREE.Vector3(-110,0,-40),new THREE.Vector3(110,0,-40),new THREE.Vector3(110,0,0),new THREE.Vector3(-110,0,0)],
+    [new THREE.Vector3(-40,0,-110),new THREE.Vector3(-40,0,110),new THREE.Vector3(0,0,110),new THREE.Vector3(0,0,-110)],
+    [new THREE.Vector3(40,0,110),new THREE.Vector3(40,0,-110),new THREE.Vector3(80,0,-110),new THREE.Vector3(80,0,110)]
+  ];
+  [0x3d82e6,0xe0b22f,0x45b77a].forEach((color,i)=>{
+    trafficCars.push(makeTrafficCar(color,routes[i][0].x,routes[i][0].z,routes[i],i*1.7));
+  });
+}
+
+// ---------------------------------------------------------------------
+// audio -- fully synthesized, zero external files
+// ---------------------------------------------------------------------
+let audioCtx, masterGain, noiseBuffer;
+let enginePad, ambientNodes=[];
+function initAudio(){
+  try{
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.5;
+    masterGain.connect(audioCtx.destination);
+
+    const len = audioCtx.sampleRate*1;
+    noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for(let i=0;i<len;i++) data[i] = Math.random()*2-1;
+  }catch(e){ console.warn('audio unavailable', e); }
+}
+function resumeAudio(){ if(audioCtx && audioCtx.state==='suspended') audioCtx.resume(); }
+
+function playTone(freq, dur, type, vol, glideTo){
+  if(!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type||'sine';
+  o.frequency.value = freq;
+  if(glideTo) o.frequency.linearRampToValueAtTime(glideTo, audioCtx.currentTime+dur);
+  g.gain.value = 0;
+  g.gain.linearRampToValueAtTime(vol, audioCtx.currentTime+0.02);
+  g.gain.linearRampToValueAtTime(0, audioCtx.currentTime+dur);
+  o.connect(g); g.connect(masterGain);
+  o.start(); o.stop(audioCtx.currentTime+dur+0.05);
+}
+function playNoiseBurst(dur, vol, filterFreq){
+  if(!audioCtx||!noiseBuffer) return;
+  const src = audioCtx.createBufferSource();
+  src.buffer = noiseBuffer;
+  const filt = audioCtx.createBiquadFilter();
+  filt.type='lowpass'; filt.frequency.value = filterFreq||1200;
+  const g = audioCtx.createGain();
+  g.gain.value = vol;
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
+  src.connect(filt); filt.connect(g); g.connect(masterGain);
+  src.start(); src.stop(audioCtx.currentTime+dur+0.05);
+}
+function playUIBlip(){ playTone(880,0.08,'square',0.05,1200); }
+function playFootstep(){ playNoiseBurst(0.06,0.05,900); }
+function playPortalWhoosh(){
+  playTone(120,0.9,'sawtooth',0.09,900);
+  playNoiseBurst(0.9,0.05,4000);
+}
+function playGrowl(){ playTone(70,0.5,'sawtooth',0.08,40); }
+
+let engineOsc=null, engineGain=null;
+function startEngine(){
+  if(!audioCtx) return;
+  engineOsc = audioCtx.createOscillator();
+  engineGain = audioCtx.createGain();
+  engineOsc.type='sawtooth';
+  engineOsc.frequency.value = 60;
+  engineGain.gain.value = 0.0;
+  engineOsc.connect(engineGain); engineGain.connect(masterGain);
+  engineOsc.start();
+}
+function stopEngine(){
+  if(engineOsc){ engineGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.2); engineOsc.stop(audioCtx.currentTime+0.25); engineOsc=null; }
+}
+function updateEngineSound(speed){
+  if(!engineOsc) return;
+  engineOsc.frequency.value = 55 + Math.abs(speed)*40;
+  engineGain.gain.value = 0.02 + Math.min(Math.abs(speed)*0.02,0.07);
+}
+
+let ambientOsc=null, ambientGain=null;
+function startAmbient(alien){
+  if(!audioCtx) return;
+  if(ambientOsc) { ambientOsc.stop(); }
+  ambientOsc = audioCtx.createOscillator();
+  ambientGain = audioCtx.createGain();
+  ambientOsc.type='sine';
+  ambientOsc.frequency.value = alien?58:110;
+  ambientGain.gain.value = alien?0.035:0.02;
+  ambientOsc.connect(ambientGain); ambientGain.connect(masterGain);
+  ambientOsc.start();
+}
+
+// ---------------------------------------------------------------------
+// mission / dialogue system
+// ---------------------------------------------------------------------
+const objectiveEl = document.getElementById('objectiveText');
+const dialogueEl = document.getElementById('dialogue');
+const dialogueWho = document.getElementById('dialogueWho');
+const dialogueWhat = document.getElementById('dialogueWhat');
+const toastEl = document.getElementById('toast');
+let dialogueTimer=null;
+
+function setObjective(text){ objectiveEl.textContent = text; }
+function showDialogue(who,text,dur){
+  dialogueWho.textContent = who;
+  dialogueWhat.textContent = text;
+  dialogueEl.classList.add('show');
+  clearTimeout(dialogueTimer);
+  dialogueTimer = setTimeout(()=>dialogueEl.classList.remove('show'), dur||4200);
+  playUIBlip();
+}
+function showToast(text,dur){
+  toastEl.textContent = text;
+  toastEl.classList.add('show');
+  setTimeout(()=>toastEl.classList.remove('show'), dur||2200);
+}
+
+// ---------------------------------------------------------------------
+// live conversation engine
+// -----------------------------------------------------------------
+// This is a real, computed-at-runtime branching dialogue system, not a
+// linear scripted cutscene: your choice actually selects a reply tag,
+// the NPC's next line is drawn at random from a pool that matches that
+// tag (so replaying the same conversation won't always read identically),
+// and it permanently changes that NPC's relationship value, which the
+// rest of the game (friend status, invites, home visits) reacts to.
+// It is NOT a free-form AI language model -- there's no backend here to
+// generate truly novel sentences -- but every branch you can reach is a
+// genuine consequence of what you picked, not a fixed script.
+// ---------------------------------------------------------------------
+const PLAYER_REPLY_POOL = [
+  {tag:'friendly', text:"That's really kind of you to say."},
+  {tag:'friendly', text:"I appreciate you telling me that."},
+  {tag:'funny',    text:"Ha! Okay, that's actually hilarious."},
+  {tag:'funny',    text:"Wow. Riveting content. 10 out of 10."},
+  {tag:'blunt',    text:"Cool story. Anyway."},
+  {tag:'blunt',    text:"Noted. Moving on."},
+  {tag:'curious',  text:"Wait -- tell me more about that."},
+  {tag:'curious',  text:"Okay, now I actually want details."},
+  {tag:'brave',    text:"I'm not scared. I'll go check it out myself."},
+  {tag:'nervous',  text:"Yeah... I think I'll stay far away from that."},
+  {tag:'warm',     text:"Hey, you doing okay? You seem tense."},
+];
+const NPC_RESPONSE_POOL = {
+  friendly: [
+    "You're alright, you know that?",
+    "Careful, I might start liking you.",
+    "That means more than you'd think around here.",
+    "Don't tell anyone, but you're my favorite stranger today."
+  ],
+  funny: [
+    "Ha! Okay, I'll give you that one.",
+    "You should host a late night show or something.",
+    "I nearly spat my coffee out just now.",
+    "Comedy gold. Underrated. Truly."
+  ],
+  blunt: [
+    "Fine. Whatever works for you.",
+    "Wow. Cold. I respect it, honestly.",
+    "Noted. Anyway, watch yourself out there.",
+    "Straight to the point. I like that."
+  ],
+  curious: [
+    "Honestly? I probably shouldn't say more. But since you asked...",
+    "You're more curious than most people who talk to me.",
+    "Careful what you go digging into around here.",
+    "Alright, alright -- since you asked so nicely."
+  ],
+  brave: [
+    "Big talk. Let's see if you mean it.",
+    "You and me both know that's a terrible idea. Respect.",
+    "Don't come crying to me when it gets weird out there.",
+    "Bold. I like bold. Bold people last less long, but I like it."
+  ],
+  nervous: [
+    "Smart. Genuinely, the smart move.",
+    "Yeah. Yeah, you should. Trust that feeling.",
+    "That instinct is the only reason half this city's still standing.",
+    "Good. Somebody around here still has sense."
+  ],
+  warm: [
+    "...Yeah. It's been a weird week. Thanks for noticing.",
+    "I'm fine. Mostly. Ask me again after tonight.",
+    "That's the nicest thing anyone's asked me all day.",
+    "Careful, keep talking like that and I'll actually tell you the truth."
+  ]
+};
+const CONVO_FOLLOWUPS = [
+  "So what's your deal, anyway -- just passing through?",
+  "You hear anything strange the last few nights?",
+  "You look like you've got somewhere to be.",
+  "Anyway. You doing alright out there?",
+  "This city's not as boring as it looks, huh.",
+  "Don't let the quiet fool you. It never lasts."
+];
+
+function relationshipLabel(r){
+  if(r>=8) return 'Close Friend';
+  if(r>=5) return 'Friend';
+  if(r>=2) return 'Acquaintance';
+  return 'Stranger';
+}
+
+const conversationModal = document.getElementById('conversationModal');
+const conversationTitleEl = document.getElementById('conversationTitle');
+const conversationTextEl = document.getElementById('conversationText');
+const conversationKickerEl = document.getElementById('conversationKicker');
+const conversationMetaEl = document.getElementById('conversationMeta');
+const convPortraitEl = document.getElementById('convPortrait');
+const replyChoicesEl = document.getElementById('replyChoices');
+
+function pickN(arr,n){
+  const pool = arr.slice();
+  const out = [];
+  while(out.length<n && pool.length){
+    out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  }
+  return out;
+}
+
+function openConversation(npc){
+  activeConversation = npc;
+  npc.met = true;
+  missionFlags.talkedToNPC = true;
+  if(npc.travelState==='waiting'){
+    npc.relationship = Math.min(12, npc.relationship+1);
+    npc.travelState='walking';
+    npc.visitCooldown = rand(60,130);
+  }
+  const opener = npc.lines[npc.convoOpenerIdx % npc.lines.length];
+  npc.convoOpenerIdx++;
+  renderConversationLine(npc, npc.name, opener);
+  conversationModal.classList.add('open');
+  conversationModal.setAttribute('aria-hidden','false');
+  closeMap(); closePhone();
+}
+function renderConversationLine(npc, speaker, text){
+  npc.lastMessage = text.length>46 ? text.slice(0,46)+'...' : text;
+  conversationTitleEl.textContent = npc.name.toUpperCase();
+  conversationKickerEl.textContent = 'LIVE CONVERSATION // '+relationshipLabel(npc.relationship).toUpperCase();
+  conversationTextEl.textContent = text;
+  conversationMetaEl.textContent = speaker+' -- '+relationshipLabel(npc.relationship)+(npc.friend?' (Friend -- invite them out from Contacts)':'');
+  convPortraitEl.style.background = 'linear-gradient(145deg,#'+(npc.shirtColor||0x3355aa).toString(16).padStart(6,'0')+',#131923 58%,#9a4444)';
+  renderReplyChoices(npc);
+  playUIBlip();
+}
+function renderReplyChoices(npc){
+  replyChoicesEl.innerHTML='';
+  const choices = pickN(PLAYER_REPLY_POOL,3);
+  choices.forEach(c=>{
+    const btn = document.createElement('button');
+    btn.className='replyBtn';
+    btn.textContent = c.text;
+    btn.addEventListener('click', ()=>sendReply(npc,c));
+    replyChoicesEl.appendChild(btn);
+  });
+  const endBtn = document.createElement('button');
+  endBtn.className='replyBtn';
+  endBtn.style.opacity='0.7';
+  endBtn.textContent = "I should get going.";
+  endBtn.addEventListener('click', closeConversation);
+  replyChoicesEl.appendChild(endBtn);
+}
+function sendReply(npc, pickedReply){
+  const gain = (pickedReply.tag==='friendly'||pickedReply.tag==='funny'||pickedReply.tag==='warm') ? 2 : 1;
+  const wasFriend = npc.friend;
+  npc.relationship = Math.min(12, npc.relationship+gain);
+  if(!wasFriend && npc.relationship>=5){
+    npc.friend = true;
+    if(!friends.includes(npc.name)) friends.push(npc.name);
+    setTimeout(()=>showToast(npc.name+' IS NOW A FRIEND -- invite them out from your Phone'), 350);
+  }
+  const pool = NPC_RESPONSE_POOL[pickedReply.tag] || NPC_RESPONSE_POOL.friendly;
+  let response = choice(pool);
+  if(Math.random()<0.35) response += ' ' + choice(CONVO_FOLLOWUPS);
+  renderConversationLine(npc, npc.name, response);
+}
+function closeConversation(){
+  conversationModal.classList.remove('open');
+  conversationModal.setAttribute('aria-hidden','true');
+  activeConversation = null;
+}
+document.getElementById('conversationClose').addEventListener('click', closeConversation);
+conversationModal.addEventListener('click', e=>{ if(e.target===conversationModal) closeConversation(); });
+
+const MISSION_STAGES = [
+  "Look around. Talk to someone (walk close, press E) -- see what people know.",
+  "Interesting. Head east, past downtown, toward the edge of the city.",
+  "Something's glowing out past the lot. Get close to it.",
+  "Step through the portal. Whatever's on the other side, you're already in too deep.",
+  "This place is not okay. Find someone -- or something -- to talk to.",
+  "Something noticed you. It does not seem friendly. GET TO THE PORTAL.",
+  "You're back. For now. The city looks the same. You are not.",
+];
+function setMissionStage(n){
+  missionStage = n;
+  setObjective(MISSION_STAGES[Math.min(n,MISSION_STAGES.length-1)]);
+  if(n>0){ showToast('OBJECTIVE UPDATED'); playUIBlip(); }
+}
+
+function checkMissionProgress(){
+  if(missionStage===0 && missionFlags.talkedToNPC){ setMissionStage(1); }
+  if(missionStage===1){
+    const d = Math.hypot(player.position.x - cityPortal.position.x, player.position.z - cityPortal.position.z);
+    if(d < 30) setMissionStage(2);
+  }
+  if(missionStage===2){
+    const d = Math.hypot(player.position.x - cityPortal.position.x, player.position.z - cityPortal.position.z);
+    if(d < 4) setMissionStage(3);
+  }
+  if(missionStage===3 && inZone==='alien'){ setMissionStage(4); }
+  if(missionStage===4 && missionFlags.talkedToAlien){ setMissionStage(5); }
+  if(missionStage===5 && inZone==='city' && missionFlags.escapedOnce){ setMissionStage(6); }
+}
+
+// ---------------------------------------------------------------------
+// input
+// ---------------------------------------------------------------------
+window.addEventListener('keydown', e=>{
+  keys[e.code]=true;
+  if(e.code==='KeyE') tryInteract();
+  if(e.code==='KeyH') toggleHelp();
+  if(e.code==='KeyM') toggleMap();
+  if(e.code==='KeyP') togglePhone();
+  if(e.code==='Escape'){ closeMap(); closePhone(); }
+});
+window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+
+let dragMode=null, dragId=null, lastX=0,lastY=0;
+canvas.addEventListener('pointerdown', e=>{
+  resumeAudio();
+  if(e.pointerType==='touch' && e.clientX < window.innerWidth*0.42){
+    return; // left side handled by joystick layer
+  }
+  dragMode='camera'; dragId=e.pointerId; lastX=e.clientX; lastY=e.clientY;
+});
+window.addEventListener('pointermove', e=>{
+  if(dragMode==='camera' && e.pointerId===dragId){
+    const dx = e.clientX-lastX, dy=e.clientY-lastY;
+    cameraTheta -= dx*0.0055;
+    cameraPhi = clamp(cameraPhi - dy*0.0045, 0.12, 1.35);
+    lastX=e.clientX; lastY=e.clientY;
+  }
+});
+window.addEventListener('pointerup', e=>{ if(e.pointerId===dragId){ dragMode=null; dragId=null; } });
+canvas.addEventListener('wheel', e=>{
+  cameraDistance = clamp(cameraDistance + e.deltaY*0.01, CAMERA_MIN_DIST, CAMERA_MAX_DIST);
+}, {passive:true});
+
+function toggleHelp(){
+  const s = document.getElementById('startScreen');
+  s.style.display = (s.style.display==='none'||!s.style.display) ? 'flex' : 'none';
+}
+
+const mapModal=document.getElementById('mapModal');
+const phoneModal=document.getElementById('phoneModal');
+const mapCanvas=document.getElementById('mapCanvas');
+const mapCtx=mapCanvas.getContext('2d');
+function toggleMap(){
+  if(mapModal.classList.contains('open')) closeMap();
+  else { closePhone(); mapModal.classList.add('open'); mapModal.setAttribute('aria-hidden','false'); drawFullMap(); }
+}
+function closeMap(){ mapModal.classList.remove('open'); mapModal.setAttribute('aria-hidden','true'); }
+const phoneCardEl = document.getElementById('phoneCard');
+const phoneBodyEl = document.getElementById('phoneBody');
+const phoneHeaderTitleEl = document.getElementById('phoneHeaderTitle');
+
+function togglePhone(){
+  if(phoneModal.classList.contains('open')) closePhone();
+  else {
+    closeMap();
+    phoneModal.classList.add('open');
+    phoneModal.setAttribute('aria-hidden','false');
+    renderPhoneApp('home');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>phoneCardEl.classList.add('flip-open')));
+  }
+}
+function closePhone(){
+  if(!phoneModal.classList.contains('open')) return;
+  phoneCardEl.classList.remove('flip-open');
+  setTimeout(()=>{ phoneModal.classList.remove('open'); phoneModal.setAttribute('aria-hidden','true'); }, 380);
+}
+document.getElementById('mapBtn').addEventListener('click',toggleMap);
+document.getElementById('mapClose').addEventListener('click',closeMap);
+document.getElementById('phoneBtn').addEventListener('click',togglePhone);
+document.getElementById('phoneClose').addEventListener('click',closePhone);
+mapModal.addEventListener('click',e=>{if(e.target===mapModal)closeMap();});
+phoneModal.addEventListener('click',e=>{if(e.target===phoneModal)closePhone();});
+
+function updatePhoneStatus(){
+  document.getElementById('phoneTime').textContent=(inZone==='city'?'CITY NETWORK':PLANET_DEFS[currentPlanetKey].name.toUpperCase()+' RELAY')+' // '+(inZone==='city'?'ONLINE':'WEAK SIGNAL');
+}
+function phoneBackBtn(){
+  const b=document.createElement('button');
+  b.className='phoneBackBtn'; b.textContent='< Home';
+  b.addEventListener('click',()=>renderPhoneApp('home'));
+  return b;
+}
+function phoneNote(text){
+  const p=document.createElement('div'); p.id='phoneLog'; p.textContent=text;
+  return p;
+}
+function renderPhoneApp(name){
+  updatePhoneStatus();
+  phoneBodyEl.innerHTML='';
+  phoneBodyEl.classList.remove('phoneApp'); void phoneBodyEl.offsetWidth; phoneBodyEl.classList.add('phoneApp');
+  if(name==='home') renderPhoneHome();
+  else if(name==='contacts') renderPhoneContacts();
+  else if(name==='messages') renderPhoneMessages();
+  else if(name==='photos') renderPhonePhotos();
+  else if(name==='starmap') renderPhoneStarMap();
+  else if(name==='scan') renderPhoneScan();
+  else if(name==='nav') renderPhoneNav();
+  else if(name==='settings') renderPhoneSettings();
+}
+
+function renderPhoneHome(){
+  phoneHeaderTitleEl.textContent='NIGHTLINE';
+  const title=document.createElement('div'); title.className='phoneTitle'; title.textContent='Nightline';
+  phoneBodyEl.appendChild(title);
+  const grid=document.createElement('div'); grid.className='phoneGrid';
+  [
+    ['Contacts','People you have met','contacts'],
+    ['Messages','Text your friends','messages'],
+    ['Photos','Public gallery','photos'],
+    ['Star Map','Choose where to travel','starmap'],
+    ['World Scan','Read live entities nearby','scan'],
+    ['Navigation','Set your route','nav'],
+    ['Settings','Audio & extras','settings'],
+  ].forEach(([label,desc,key])=>{
+    const btn=document.createElement('button');
+    btn.className='phoneAction';
+    btn.innerHTML='<strong>'+label+'</strong><small>'+desc+'</small>';
+    btn.addEventListener('click',()=>renderPhoneApp(key));
+    grid.appendChild(btn);
+  });
+  phoneBodyEl.appendChild(grid);
+  phoneBodyEl.appendChild(phoneNote('Everything on this phone runs live, locally, in your browser -- no account or server required.'));
+}
+
+function renderPhoneContacts(){
+  phoneHeaderTitleEl.textContent='CONTACTS';
+  phoneBodyEl.appendChild(phoneBackBtn());
+  const met = npcs.filter(n=>n.met);
+  if(!met.length){ phoneBodyEl.appendChild(phoneNote('No contacts yet. Walk up to someone in the city and press E to talk.')); return; }
+  met.forEach(n=>{
+    const row=document.createElement('div'); row.className='contactRow';
+    const who=document.createElement('div'); who.className='who';
+    who.innerHTML='<strong>'+n.name+'</strong><small>'+relationshipLabel(n.relationship)+(n.friend?' -- Friend':'')+'</small>';
+    row.appendChild(who);
+    const btn=document.createElement('button'); btn.className='miniBtn';
+    if(n.friend){
+      if(n.travelState==='visiting'){ btn.textContent='On the way...'; btn.disabled=true; }
+      else if(n.travelState==='waiting'){ btn.textContent='Waiting outside'; btn.disabled=true; }
+      else { btn.textContent='Invite over'; btn.addEventListener('click',()=>inviteFriendOver(n)); }
+    } else {
+      btn.textContent='Not close yet'; btn.disabled=true;
+    }
+    row.appendChild(btn);
+    phoneBodyEl.appendChild(row);
+  });
+}
+function inviteFriendOver(npc){
+  npc.travelState='visiting';
+  npc.visitCooldown=999;
+  showToast(npc.name+' is heading your way!');
+  renderPhoneApp('contacts');
+}
+
+function renderPhoneMessages(){
+  phoneHeaderTitleEl.textContent='MESSAGES';
+  phoneBodyEl.appendChild(phoneBackBtn());
+  const list = npcs.filter(n=>n.friend);
+  if(!list.length){ phoneBodyEl.appendChild(phoneNote('No conversations yet. Become friends with someone first -- talk to them a few times and pick warm replies.')); return; }
+  list.forEach(n=>{
+    const row=document.createElement('div'); row.className='contactRow';
+    const who=document.createElement('div'); who.className='who';
+    who.innerHTML='<strong>'+n.name+'</strong><small>'+(n.lastMessage||'Say hi...')+'</small>';
+    row.appendChild(who);
+    const btn=document.createElement('button'); btn.className='miniBtn'; btn.textContent='Open';
+    btn.addEventListener('click',()=>{ closePhone(); openConversation(n); });
+    row.appendChild(btn);
+    phoneBodyEl.appendChild(row);
+  });
+}
+
+function renderPhonePhotos(){
+  phoneHeaderTitleEl.textContent='PHOTOS';
+  phoneBodyEl.appendChild(phoneBackBtn());
+  phoneBodyEl.appendChild(phoneNote('Public photos loaded live from the web -- needs an internet connection, same as the game engine itself.'));
+  const grid=document.createElement('div'); grid.className='photoGrid';
+  ['nightline-city-1','nightline-city-2','nightline-city-3','nightline-crew-1','nightline-crew-2','nightline-crew-3'].forEach(seed=>{
+    const img=document.createElement('img');
+    img.loading='lazy'; img.src='https://picsum.photos/seed/'+seed+'/300/300'; img.alt='public photo';
+    grid.appendChild(img);
+  });
+  phoneBodyEl.appendChild(grid);
+}
+
+function renderPhoneStarMap(){
+  phoneHeaderTitleEl.textContent='STAR MAP';
+  phoneBodyEl.appendChild(phoneBackBtn());
+  phoneBodyEl.appendChild(phoneNote(inZone==='city'
+    ? 'Pick your next destination. Step through the city portal to travel there.'
+    : 'Warp directly -- no need to find a portal first.'));
+  Object.keys(PLANET_DEFS).forEach(key=>{
+    const def = PLANET_DEFS[key];
+    const card=document.createElement('div'); card.className='planetCard';
+    const h=document.createElement('h4'); h.textContent=def.name+(key===currentPlanetKey&&inZone==='alien'?' (current)':'');
+    const p=document.createElement('p'); p.textContent=def.blurb;
+    card.appendChild(h); card.appendChild(p);
+    const btn=document.createElement('button'); btn.className='miniBtn';
+    if(inZone==='city'){
+      btn.textContent = key===nextPlanetKey ? 'Destination set' : 'Set as destination';
+      btn.disabled = key===nextPlanetKey;
+      btn.addEventListener('click',()=>{ nextPlanetKey=key; renderPhoneApp('starmap'); });
+    } else {
+      btn.textContent = key===currentPlanetKey ? 'Already here' : 'Warp now';
+      btn.disabled = key===currentPlanetKey;
+      btn.addEventListener('click',()=>{ nextPlanetKey=key; closePhone(); switchPlanet(key); });
+    }
+    card.appendChild(btn);
+    phoneBodyEl.appendChild(card);
+  });
+}
+
+function renderPhoneScan(){
+  phoneHeaderTitleEl.textContent='WORLD SCAN';
+  phoneBodyEl.appendChild(phoneBackBtn());
+  const people=inZone==='city'?npcs.filter(n=>n.pos.distanceTo(player.position)<28).length:0;
+  const aliens=inZone==='alien'?creatures.filter(c=>c.pos.distanceTo(player.position)<35).length:0;
+  lastScan = inZone==='city'
+    ? people+' people and '+trafficCars.length+' autonomous vehicles nearby.'
+    : aliens+' creatures nearby on '+PLANET_DEFS[currentPlanetKey].name+'; '+creatures.filter(c=>!c.hostile).length+' are non-hostile.';
+  phoneBodyEl.appendChild(phoneNote(lastScan));
+}
+
+function renderPhoneNav(){
+  phoneHeaderTitleEl.textContent='NAVIGATION';
+  phoneBodyEl.appendChild(phoneBackBtn());
+  const text = inZone==='city'
+    ? 'Route pinned: cyan portal at the edge of the city, next stop '+PLANET_DEFS[nextPlanetKey].name+'.'
+    : 'Route pinned: orange return portal, or the UFO relay pad for a faster ride.';
+  setObjective(inZone==='city' ? 'Navigation active: follow the cyan portal marker.' : 'Navigation active: reach the portal or UFO relay.');
+  phoneBodyEl.appendChild(phoneNote(text));
+}
+
+function renderPhoneSettings(){
+  phoneHeaderTitleEl.textContent='SETTINGS';
+  phoneBodyEl.appendChild(phoneBackBtn());
+  const row=document.createElement('div'); row.className='contactRow';
+  const who=document.createElement('div'); who.className='who';
+  who.innerHTML='<strong>Master Volume</strong><small>Affects every sound in the game</small>';
+  row.appendChild(who);
+  const slider=document.createElement('input');
+  slider.type='range'; slider.min='0'; slider.max='100'; slider.value=Math.round((masterGain?masterGain.gain.value:0.5)*100);
+  slider.addEventListener('input',()=>{ if(masterGain) masterGain.gain.value = slider.value/100; });
+  row.appendChild(slider);
+  phoneBodyEl.appendChild(row);
+  phoneBodyEl.appendChild(phoneNote('Friends made so far: '+(friends.length?friends.join(', '):'none yet.')));
+}
+
+function drawFullMap(){
+  const w=mapCanvas.width,h=mapCanvas.height;
+  mapCtx.clearRect(0,0,w,h);
+  mapCtx.fillStyle=inZone==='alien'?'#160b24':'#182127'; mapCtx.fillRect(0,0,w,h);
+  const worldSize=inZone==='alien'?ALIEN_SIZE:CITY_SIZE;
+  const ox=inZone==='alien'?ALIEN_OFFSET.x:0, oz=inZone==='alien'?ALIEN_OFFSET.z:0;
+  const sx=w/worldSize, sy=h/worldSize;
+  const xy=(x,z)=>[(x-ox)*sx+w/2,(z-oz)*sy+h/2];
+  mapCtx.strokeStyle='rgba(160,210,220,0.2)'; mapCtx.lineWidth=2;
+  for(let i=0;i<=GRID_N;i++){
+    const v=(-CITY_SIZE/2+i*BLOCK);
+    const [x]=xy(v,0), [,y]=xy(0,v);
+    if(inZone==='city'){mapCtx.beginPath();mapCtx.moveTo(x,0);mapCtx.lineTo(x,h);mapCtx.stroke();mapCtx.beginPath();mapCtx.moveTo(0,y);mapCtx.lineTo(w,y);mapCtx.stroke();}
+  }
+  if(inZone==='city'){
+    buildings.forEach(b=>{
+      const [x,y]=xy(b.x,b.z); mapCtx.fillStyle='#8f73ae'; mapCtx.fillRect(x-b.w*sx/2,y-b.d*sy/2,b.w*sx,b.d*sy);
+    });
+    npcs.forEach(n=>{const [x,y]=xy(n.pos.x,n.pos.z);mapCtx.fillStyle='#ffd27a';mapCtx.beginPath();mapCtx.arc(x,y,5,0,7);mapCtx.fill();});
+    trafficCars.forEach(v=>{const [x,y]=xy(v.group.position.x,v.group.position.z);mapCtx.fillStyle='#ff5c5c';mapCtx.fillRect(x-5,y-3,10,6);});
+    const [px,py]=xy(cityPortal.position.x,cityPortal.position.z);mapCtx.fillStyle='#37e6ff';mapCtx.beginPath();mapCtx.arc(px,py,9,0,7);mapCtx.fill();
+  }else{
+    creatures.forEach(c=>{const [x,y]=xy(c.pos.x,c.pos.z);mapCtx.fillStyle=c.hostile?'#ff3b3b':'#8ad4c0';mapCtx.beginPath();mapCtx.arc(x,y,6,0,7);mapCtx.fill();});
+    const [px,py]=xy(alienPortal.position.x,alienPortal.position.z);mapCtx.fillStyle='#ff7a1a';mapCtx.beginPath();mapCtx.arc(px,py,9,0,7);mapCtx.fill();
+    if(ufoPad){const [x,y]=xy(ufoPad.position.x,ufoPad.position.z);mapCtx.fillStyle='#66ffcc';mapCtx.beginPath();mapCtx.arc(x,y,8,0,7);mapCtx.fill();}
+  }
+  const pp=inCar?car.position:player.position,[x,y]=xy(pp.x,pp.z);
+  mapCtx.fillStyle='#fff'; mapCtx.beginPath();mapCtx.arc(x,y,7,0,7);mapCtx.fill();
+  mapCtx.strokeStyle='rgba(255,255,255,0.85)';mapCtx.beginPath();mapCtx.moveTo(x,y);mapCtx.lineTo(x+Math.sin(inCar?car.rotation.y:playerYaw)*16,y+Math.cos(inCar?car.rotation.y:playerYaw)*16);mapCtx.stroke();
+  mapCtx.fillStyle='rgba(255,255,255,0.72)';mapCtx.font='bold 16px Segoe UI';mapCtx.fillText(inZone==='city'?'CITY':'EXTRASOLAR BIOZONE',18,28);
+}
+
+// ---------------------------------------------------------------------
+// touch controls
+// ---------------------------------------------------------------------
+const joyBase = document.getElementById('joyBase');
+const joyKnob = document.getElementById('joyKnob');
+let joyVec = {x:0,y:0};
+let joyActive=false, joyId=null, joyCenter={x:0,y:0};
+
+function isTouchDevice(){ return ('ontouchstart' in window) || navigator.maxTouchPoints>0; }
+
+window.addEventListener('pointerdown', e=>{
+  if(e.pointerType!=='touch') return;
+  if(e.clientX > window.innerWidth*0.42) return;
+  joyActive=true; joyId=e.pointerId;
+  joyCenter={x:e.clientX,y:e.clientY};
+  joyBase.style.display='block';
+  joyBase.style.left=(joyCenter.x-55)+'px';
+  joyBase.style.top=(joyCenter.y-55)+'px';
+});
+window.addEventListener('pointermove', e=>{
+  if(joyActive && e.pointerId===joyId){
+    let dx=e.clientX-joyCenter.x, dy=e.clientY-joyCenter.y;
+    const r = Math.min(46, Math.hypot(dx,dy));
+    const ang = Math.atan2(dy,dx);
+    dx = Math.cos(ang)*r; dy = Math.sin(ang)*r;
+    joyKnob.style.left=(32+dx)+'px'; joyKnob.style.top=(32+dy)+'px';
+    joyVec.x = dx/46; joyVec.y = dy/46;
+  }
+});
+window.addEventListener('pointerup', e=>{
+  if(joyActive && e.pointerId===joyId){
+    joyActive=false; joyId=null; joyVec.x=0; joyVec.y=0;
+    joyBase.style.display='none';
+    joyKnob.style.left='32px'; joyKnob.style.top='32px';
+  }
+});
+
+const btnInteract = document.getElementById('btnInteract');
+const btnJump = document.getElementById('btnJump');
+const btnSprint = document.getElementById('btnSprint');
+btnInteract.addEventListener('pointerdown', e=>{ e.preventDefault(); resumeAudio(); tryInteract(); });
+btnJump.addEventListener('pointerdown', e=>{ e.preventDefault(); keys['Space']=true; });
+btnJump.addEventListener('pointerup', e=>{ keys['Space']=false; });
+btnSprint.addEventListener('pointerdown', e=>{ e.preventDefault(); keys['ShiftLeft']=true; btnSprint.classList.add('active'); });
+btnSprint.addEventListener('pointerup', e=>{ keys['ShiftLeft']=false; btnSprint.classList.remove('active'); });
+
+// ---------------------------------------------------------------------
+// interactions
+// ---------------------------------------------------------------------
+const interactPromptEl = document.getElementById('interactPrompt');
+
+function updateNearestInteractable(){
+  nearestInteractable = null;
+  if(gameMode==='space'){ interactPromptEl.style.opacity = 0; return; }
+  let best = 3.2;
+  if(insideBuilding){
+    nearestInteractable = {type:'exitbuilding', label:'Press E to Exit '+insideBuilding.kind};
+    interactPromptEl.style.opacity = 1;
+    interactPromptEl.textContent = nearestInteractable.label;
+    return;
+  }
+  if(!inCar){
+    const dCar = player.position.distanceTo(car.position);
+    if(inZone==='city' && dCar < 3.6 && dCar<best){ nearestInteractable = {type:'car', label:'Press E to Enter Vehicle'}; best=dCar; }
+    for(const n of npcs){
+      const d = player.position.distanceTo(n.pos);
+      if(d < 2.4 && d<best){ nearestInteractable = {type:'npc', obj:n, label:'Press E to Talk to '+n.name}; best=d; }
+    }
+    if(inZone==='city'){
+      for(const b of buildings){
+        const d = player.position.distanceTo(b.entrance);
+        if(d < 2.2 && d<best){ nearestInteractable = {type:'building', obj:b, label:'Press E to Enter '+b.kind}; best=d; }
+      }
+    }
+    const dPortal = inZone==='city' ? player.position.distanceTo(cityPortal.position) : player.position.distanceTo(alienPortal.position);
+    if(dPortal < 3.0 && dPortal<best){ nearestInteractable = {type:'portal', label: inZone==='city' ? 'Press E to Step Through the Portal' : 'Press E to Return to the City'}; best=dPortal; }
+    if(inZone==='alien' && ufoPad){
+      const dPad = player.position.distanceTo(ufoPad.position);
+      if(dPad < 4.2 && dPad<best){ nearestInteractable = {type:'ufo', label:'Press E to Board UFO Relay'}; best=dPad; }
+    }
+    if(inZone==='city' && communityBoard){
+      const dBoard = player.position.distanceTo(communityBoard.position);
+      if(dBoard < 2.6 && dBoard<best){ nearestInteractable = {type:'board', label:'Press E to Read the Board'}; best=dBoard; }
+    }
+    for(const c of creatures){
+      if(inZone!=='alien') continue;
+      const d = player.position.distanceTo(c.pos);
+      if(!c.hostile && d < 2.6 && d<best){ nearestInteractable = {type:'alien', obj:c, label:'Press E to Approach the Creature'}; best=d; }
+    }
+  } else {
+    nearestInteractable = {type:'exitcar', label:'Press E to Exit Vehicle'};
+  }
+  interactPromptEl.style.opacity = nearestInteractable ? 1 : 0;
+  if(nearestInteractable) interactPromptEl.textContent = nearestInteractable.label;
+}
+
+function tryInteract(){
+  if(!nearestInteractable) return;
+  const it = nearestInteractable;
+  if(it.type==='car'){
+    inCar = true;
+    carState.pos.copy(car.position); carState.yaw = car.rotation.y;
+    startEngine();
+    carParts.underGlow.intensity=1.4;
+    showToast('ADVANCED VEHICLE // DRIVE WITH WASD');
+  } else if(it.type==='exitcar'){
+    inCar = false;
+    const exitPos = car.position.clone().add(new THREE.Vector3(Math.cos(car.rotation.y+1.4)*2.4,0,Math.sin(car.rotation.y+1.4)*2.4));
+    player.position.copy(exitPos);
+    playerPos.copy(exitPos);
+    stopEngine();
+    carParts.underGlow.intensity=0;
+  } else if(it.type==='building'){
+    enterBuilding(it.obj);
+  } else if(it.type==='exitbuilding'){
+    exitBuilding();
+  } else if(it.type==='npc'){
+    openConversation(it.obj);
+  } else if(it.type==='portal'){
+    doPortalTravel();
+  } else if(it.type==='alien'){
+    const c = it.obj;
+    showDialogue('???', choice(ALIEN_LINES_FRIENDLY), 4600);
+    missionFlags.talkedToAlien = true;
+    c.talked = true;
+  } else if(it.type==='board'){
+    showDialogue('COMMUNITY BOARD', choice(COMMUNITY_NOTICES), 4400);
+  } else if(it.type==='ufo'){
+    doUFOTravel();
+  }
+}
+
+function enterBuilding(b){
+  if(inCar) return;
+  insideBuilding=b;
+  b.group.visible=false; b.door.visible=false; b.sign.visible=false; b.interior.visible=true;
+  player.position.set(b.x,0.05,b.z+0.4);
+  playerYaw=0; player.rotation.y=0; playerVel.set(0,0,0);
+  document.getElementById('interiorBadge').style.display='block';
+  setObjective('You are inside '+b.kind+'. Explore the room, then press E to step back outside.');
+  showToast('ENTERED '+b.kind);
+}
+
+function exitBuilding(){
+  if(!insideBuilding) return;
+  const b=insideBuilding;
+  b.interior.visible=false; b.group.visible=true; b.door.visible=true; b.sign.visible=true;
+  player.position.copy(b.entrance);
+  insideBuilding=null;
+  document.getElementById('interiorBadge').style.display='none';
+  setObjective(MISSION_STAGES[Math.min(missionStage,MISSION_STAGES.length-1)]);
+  showToast('BACK OUTSIDE');
+}
+
+function doUFOTravel(){
+  if(!ufoPad || inZone!=='alien') return;
+  const fade=document.getElementById('fade'); fade.style.opacity=1; playPortalWhoosh();
+  setTimeout(()=>{
+    inZone='city';
+    player.position.set(0,0,18); playerPos.copy(player.position);
+    startAmbient(false); fade.style.opacity=0;
+    showToast('UFO RELAY // CITY ARRIVAL');
+    missionFlags.escapedOnce=true;
+  },500);
+}
+
+function doPortalTravel(){
+  if(inZone==='city'){
+    startSpaceFlight('toPlanet', nextPlanetKey);
+  } else {
+    startSpaceFlight('toCity', null);
+  }
+}
+
+// ---------------------------------------------------------------------
+// main update loop
+// ---------------------------------------------------------------------
+const healthFill = document.getElementById('healthFill');
+const staminaFill = document.getElementById('staminaFill');
+const clockEl = document.getElementById('clock');
+let footstepTimer=0;
+
+function updateDayTime(dt){
+  dayTime = (dayTime + dt*DAY_SPEED) % 24;
+  const angle = (dayTime/24)*Math.PI*2 - Math.PI/2;
+  const radius = 140;
+  sunLight.position.set(Math.cos(angle)*radius, Math.max(8,Math.sin(angle)*radius), 60);
+  sunLight.target.position.set(0,0,0);
+
+  const dayN = Math.max(0, Math.sin(angle));
+  const isNight = dayN < 0.08;
+
+  const dayTop=new THREE.Color(0x2f6fc9), dayBottom=new THREE.Color(0xcfe6ff);
+  const duskTop=new THREE.Color(0x4a2f6e), duskBottom=new THREE.Color(0xff9d5c);
+  const nightTop=new THREE.Color(0x03050c), nightBottom=new THREE.Color(0x0d1730);
+  let top, bottom;
+  if(dayN>0.25){ top=dayTop; bottom=dayBottom; }
+  else if(dayN>0.02){ const t=(dayN-0.02)/0.23; top=duskTop.clone().lerp(dayTop,t); bottom=duskBottom.clone().lerp(dayBottom,t); }
+  else { const t=clamp(dayN/0.02,0,1); top=nightTop.clone().lerp(duskTop,t); bottom=nightBottom.clone().lerp(duskBottom,t); }
+
+  if(inZone==='city'){
+    skyDome.material.uniforms.topColor.value.copy(top);
+    skyDome.material.uniforms.bottomColor.value.copy(bottom);
+    scene.fog.color = bottom;
+    starField.visible = isNight;
+    starField.material.opacity = lerp(starField.material.opacity, isNight?0.9:0, Math.min(1,dt*1.5));
+  }
+  sunLight.intensity = 0.15 + dayN*1.0;
+  hemiLight.intensity = 0.25 + dayN*0.5;
+  ambientLight.intensity = isNight ? 0.28 : 0.12;
+
+  props.lamps.forEach(l=>{
+    l.mat.emissiveIntensity = isNight ? 1.6 : 0.0;
+    l.mat.emissive.setHex(isNight?0xffcc77:0x000000);
+  });
+
+  const hh = Math.floor(dayTime), mm = Math.floor((dayTime-hh)*60);
+  clockEl.textContent = String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+  const status=document.getElementById('worldStatus');
+  if(status) status.textContent=(inZone==='city'?'CITY':'EXTRASOLAR BIOZONE')+' // '+(isNight?'NIGHT':'LIVE SIM');
+  if(phoneModal && phoneModal.classList.contains('open')) updatePhoneStatus();
+}
+
+function moveVectorFromInput(){
+  let fx=0, fz=0;
+  if(keys['KeyW']||keys['ArrowUp']) fz -= 1;
+  if(keys['KeyS']||keys['ArrowDown']) fz += 1;
+  if(keys['KeyA']||keys['ArrowLeft']) fx -= 1;
+  if(keys['KeyD']||keys['ArrowRight']) fx += 1;
+  if(joyVec.x || joyVec.y){ fx += joyVec.x; fz += joyVec.y; }
+  const len = Math.hypot(fx,fz);
+  if(len>1){ fx/=len; fz/=len; }
+  return {fx,fz,len:Math.min(len,1)};
+}
+
+function updatePlayer(dt){
+  const {fx,fz,len} = moveVectorFromInput();
+  const sprinting = (keys['ShiftLeft']||keys['ShiftRight']) && stamina>1 && len>0.1;
+
+  // camera-relative movement direction
+  // cameraTheta describes the camera's position around the player. The
+  // playable forward vector must point from the camera toward the target;
+  // the old sign made W walk away from the view and S walk into it.
+  const forward = new THREE.Vector3(-Math.sin(cameraTheta),0,-Math.cos(cameraTheta));
+  const right = new THREE.Vector3(Math.cos(cameraTheta),0,-Math.sin(cameraTheta));
+  const moveDir = new THREE.Vector3();
+  moveDir.addScaledVector(forward, -fz);
+  moveDir.addScaledVector(right, fx);
+  if(moveDir.lengthSq()>0.0001) moveDir.normalize();
+
+  const speed = (sprinting?6.4:3.2) * len;
+  const targetVX = moveDir.x*speed, targetVZ = moveDir.z*speed;
+  playerVel.x = lerp(playerVel.x, targetVX, Math.min(1,dt*10));
+  playerVel.z = lerp(playerVel.z, targetVZ, Math.min(1,dt*10));
+
+  // gravity / jump
+  if(onGround && (keys['Space'])){
+    playerVel.y = 5.2; onGround=false;
+  }
+  playerVel.y -= 14*dt;
+
+  let nx = player.position.x + playerVel.x*dt;
+  let nz = player.position.z + playerVel.z*dt;
+
+  if(inZone==='city'){
+    const half = CITY_SIZE/2-2;
+    nx = clamp(nx,-half,half); nz = clamp(nz,-half,half);
+    if(blockedByBuilding(nx, player.position.z, 0.4)) nx = player.position.x;
+    if(blockedByBuilding(player.position.x, nz, 0.4)) nz = player.position.z;
+    if(insideBuilding){
+      nx=clamp(nx,insideBuilding.x-insideBuilding.w/2+0.55,insideBuilding.x+insideBuilding.w/2-0.55);
+      nz=clamp(nz,insideBuilding.z-insideBuilding.d/2+0.55,insideBuilding.z+insideBuilding.d/2-0.55);
+    }
+  } else {
+    const half = ALIEN_SIZE/2-2;
+    nx = clamp(nx, ALIEN_OFFSET.x-half, ALIEN_OFFSET.x+half);
+    nz = clamp(nz, ALIEN_OFFSET.z-half, ALIEN_OFFSET.z+half);
+  }
+  player.position.x = nx; player.position.z = nz;
+
+  let ny = player.position.y + playerVel.y*dt;
+  if(ny<=0){ ny=0; playerVel.y=0; onGround=true; } else { onGround=false; }
+  player.position.y = ny;
+
+  if(moveDir.lengthSq()>0.02){
+    playerYaw = lerpAngle(playerYaw, Math.atan2(moveDir.x,moveDir.z), Math.min(1,dt*10));
+  }
+  player.rotation.y = playerYaw;
+
+  // walk animation
+  const moving = len>0.05 && onGround;
+  const walkSpeed = sprinting?14:9;
+  if(moving){
+    playerParts._t = (playerParts._t||0) + dt*walkSpeed;
+    const s = Math.sin(playerParts._t);
+    playerParts.legL.rotation.x = s*0.7;
+    playerParts.legR.rotation.x = -s*0.7;
+    playerParts.armL.rotation.x = -s*0.6;
+    playerParts.armR.rotation.x = s*0.6;
+  } else {
+    playerParts.legL.rotation.x = lerp(playerParts.legL.rotation.x,0,dt*8);
+    playerParts.legR.rotation.x = lerp(playerParts.legR.rotation.x,0,dt*8);
+    playerParts.armL.rotation.x = lerp(playerParts.armL.rotation.x,0,dt*8);
+    playerParts.armR.rotation.x = lerp(playerParts.armR.rotation.x,0,dt*8);
+  }
+  player.userData.shadow.position.set(player.position.x, 0.02, player.position.z);
+
+  // stamina
+  if(sprinting){ stamina = Math.max(0,stamina-dt*22); } else { stamina = Math.min(100, stamina+dt*14); }
+  healthFill.style.width = health+'%';
+  staminaFill.style.width = stamina+'%';
+
+  // footsteps
+  if(moving){
+    footstepTimer -= dt;
+    if(footstepTimer<=0){ playFootstep(); footstepTimer = sprinting?0.24:0.42; }
+  }
+}
+
+function updateVehicle(dt){
+  const accel = (keys['KeyW']||keys['ArrowUp']) ? 1 : ((keys['KeyS']||keys['ArrowDown']) ? -1 : 0);
+  const steer = (keys['KeyA']||keys['ArrowLeft']) ? 1 : ((keys['KeyD']||keys['ArrowRight']) ? -1 : 0);
+  const joyAccel = joyVec.y ? -joyVec.y : 0;
+  const joySteer = joyVec.x ? -joyVec.x : 0;
+  const a = accel || joyAccel, s = steer || joySteer;
+
+  carState.speed = clamp(carState.speed + a*dt*9, -7, 15);
+  carState.speed *= (1-dt*0.6); // friction
+  if(Math.abs(carState.speed)>0.05){
+    carState.yaw += s*dt*1.8*Math.sign(carState.speed);
+  }
+  const oldX=carState.pos.x, oldZ=carState.pos.z;
+  carState.pos.x += Math.sin(carState.yaw)*carState.speed*dt;
+  carState.pos.z += Math.cos(carState.yaw)*carState.speed*dt;
+
+  const half = inZone==='city' ? CITY_SIZE/2-3 : ALIEN_SIZE/2-3;
+  const cx = inZone==='city' ? 0 : ALIEN_OFFSET.x;
+  const cz = inZone==='city' ? 0 : ALIEN_OFFSET.z;
+  carState.pos.x = clamp(carState.pos.x, cx-half, cx+half);
+  carState.pos.z = clamp(carState.pos.z, cz-half, cz+half);
+  if(inZone==='city' && blockedByBuilding(carState.pos.x,carState.pos.z,1.1)){
+    carState.pos.x=oldX; carState.pos.z=oldZ; carState.speed*=-0.25;
+  }
+
+  car.position.copy(carState.pos);
+  car.rotation.y = carState.yaw;
+  car.userData.shadow.position.set(car.position.x,0.02,car.position.z);
+  carParts.wheels.forEach(w=> w.rotation.x -= carState.speed*dt*1.4 );
+
+  player.position.copy(carState.pos).add(new THREE.Vector3(0,1000,0)); // park player out of the way
+  updateEngineSound(carState.speed);
+}
+
+function updateTrafficCars(dt,t){
+  trafficCars.forEach(v=>{
+    const target=v.route[v.routeIndex];
+    const dir=target.clone().sub(v.group.position); dir.y=0;
+    if(dir.length()<2.2){ v.routeIndex=(v.routeIndex+1)%v.route.length; return; }
+    dir.normalize();
+    v.group.position.x += dir.x*v.speed*dt;
+    v.group.position.z += dir.z*v.speed*dt;
+    v.yaw=lerpAngle(v.yaw,Math.atan2(dir.x,dir.z),dt*8);
+    v.group.rotation.y=v.yaw;
+    v.wheels.forEach(w=>w.rotation.x-=v.speed*dt*1.6);
+    v.shadow.position.set(v.group.position.x,0.02,v.group.position.z);
+    v.group.position.y=0.02+Math.sin(t*2+v.phase)*0.008;
+  });
+}
+
+const PLAYER_HOME = new THREE.Vector3(0,0,18); // "your place" -- where invited/organic visits head to
+
+function updateNPCs(dt){
+  for(const n of npcs){
+    n.walkT += dt;
+
+    if(n.travelState==='visiting'){
+      const dir = PLAYER_HOME.clone().sub(n.pos); dir.y=0;
+      const d = dir.length();
+      if(d<1.6){
+        n.travelState='waiting';
+        n.visitCooldown = rand(45,90);
+        showToast(n.name+' showed up at your place! Go say hi.');
+      } else {
+        dir.normalize();
+        n.pos.x += dir.x*n.speed*1.6*dt;
+        n.pos.z += dir.z*n.speed*1.6*dt;
+        n.yaw = lerpAngle(n.yaw, Math.atan2(dir.x,dir.z), dt*5);
+        n.parts.group.rotation.y = n.yaw;
+        const s = Math.sin(n.walkT*8);
+        n.parts.legL.rotation.x = s*0.7; n.parts.legR.rotation.x=-s*0.7;
+      }
+      continue;
+    }
+    if(n.travelState==='waiting'){
+      n.visitCooldown -= dt;
+      n.parts.armL.rotation.x = Math.sin(n.walkT*1.5)*0.08;
+      if(n.visitCooldown<=0){
+        n.travelState='walking';
+        n.visitCooldown = rand(50,110);
+      }
+      continue;
+    }
+
+    // organic visits: friends occasionally decide to drop by on their own,
+    // not just when invited -- a real (if simple) simulated decision, not
+    // a scripted one-time event
+    if(n.friend){
+      n.visitCooldown -= dt;
+      if(n.visitCooldown<=0){
+        n.visitCooldown = rand(70,140);
+        if(Math.random()<0.4){ n.travelState='visiting'; continue; }
+      }
+    }
+
+    const dir = n.target.clone().sub(n.pos);
+    const d = dir.length();
+    if(d<0.4){
+      n.target = (n.target===n.wpA)?n.wpB:n.wpA;
+      n.destination=choice(['home','market','plaza','station']);
+    }
+    else {
+      dir.normalize();
+      n.pos.x += dir.x*n.speed*dt;
+      n.pos.z += dir.z*n.speed*dt;
+      n.yaw = lerpAngle(n.yaw, Math.atan2(dir.x,dir.z), dt*5);
+      n.parts.group.rotation.y = n.yaw;
+      const s = Math.sin(n.walkT*7);
+      n.parts.legL.rotation.x = s*0.5; n.parts.legR.rotation.x=-s*0.5;
+      n.parts.armL.rotation.x = -s*0.35; n.parts.armR.rotation.x=s*0.35;
+    }
+  }
+}
+
+function updateAlienWorld(dt,t){
+  alienFloaters.forEach(r=>{
+    const f = r.userData.floaty;
+    r.position.y = f.base + Math.sin(t*f.speed+f.phase)*f.amp;
+    r.rotation.y += dt*0.2;
+    r.rotation.x += dt*0.1;
+  });
+  alienPlants.forEach(p=>{
+    p.rotation.z = Math.sin(t*0.6+p.userData.sway)*0.12;
+  });
+  if(alienUFO){
+    const ang = t*0.15;
+    alienUFO.position.x = ALIEN_OFFSET.x + Math.cos(ang)*50;
+    alienUFO.position.z = ALIEN_OFFSET.z + Math.sin(ang)*50;
+    alienUFO.position.y = ALIEN_OFFSET.y + 26 + Math.sin(t*0.7)*3;
+    alienUFO.rotation.y += dt*0.5;
+  }
+  cityPortal.userData.ring.rotation.z += dt*0.6;
+  alienPortal.userData.ring.rotation.z += dt*0.6;
+
+  if(inZone!=='alien') return;
+  for(const c of creatures){
+    if(c.hostile){
+      const d = player.position.distanceTo(c.pos);
+      if(c.state==='wander'){
+        if(d < 14){ c.state='chase'; playGrowl(); showDialogue('INSTINCT', choice(ALIEN_LINES_HOSTILE_ESCAPE), 3200); }
+      }
+      if(c.state==='chase'){
+        const dir = player.position.clone().sub(c.pos); dir.y=0;
+        if(dir.lengthSq()>0.001){
+          dir.normalize();
+          c.pos.x += dir.x*c.speed*dt;
+          c.pos.z += dir.z*c.speed*dt;
+          c.group.rotation.y = Math.atan2(dir.x,dir.z);
+        }
+        if(d>28) c.state='wander';
+        if(d<1.4 && c.chaseCooldown<=0){
+          health = Math.max(0, health-20);
+          c.chaseCooldown = 4;
+          c.state='wander';
+          playNoiseBurst(0.4,0.15,600);
+          showToast('GOTCHA! (-20 HP)');
+          const dest = alienPortal.position.clone().add(new THREE.Vector3(0,-1.6,10));
+          player.position.copy(dest);
+        }
+      }
+      c.chaseCooldown = Math.max(0,c.chaseCooldown-dt);
+    } else {
+      c.wanderT -= dt;
+      if(c.wanderT<=0){
+        c.wanderTarget.set(ALIEN_OFFSET.x+rand(-ALIEN_SIZE*0.35,ALIEN_SIZE*0.35),0.7,ALIEN_OFFSET.z+rand(-ALIEN_SIZE*0.35,ALIEN_SIZE*0.35));
+        c.wanderT = rand(3,7);
+      }
+      const dir = c.wanderTarget.clone().sub(c.pos); dir.y=0;
+      if(dir.length()>0.5){ dir.normalize(); c.pos.x+=dir.x*c.speed*dt; c.pos.z+=dir.z*c.speed*dt; c.group.rotation.y = Math.atan2(dir.x,dir.z); }
+    }
+    c.group.position.y = 0.7 + Math.sin(t*2+c.pos.x)*0.08;
+  }
+}
+
+function updateCamera(dt){
+  if(gameMode==='space'){
+    const desired = spaceShip.position.clone().add(new THREE.Vector3(0,2.6,9));
+    camera.position.lerp(desired, Math.min(1,dt*6));
+    const lookAt = spaceShip.position.clone().add(new THREE.Vector3(0,0,-14));
+    if(spaceState.shake>0){
+      lookAt.x += rand(-1,1)*spaceState.shake;
+      lookAt.y += rand(-1,1)*spaceState.shake;
+    }
+    camera.lookAt(lookAt);
+    return;
+  }
+  const target = inCar ? car.position : player.position;
+  // gentle auto-follow when moving and not actively dragging camera
+  if(!dragMode && !joyActive){
+    const {fx,fz,len} = moveVectorFromInput();
+    if(len>0.2 && !inCar){
+      cameraTheta = lerpAngle(cameraTheta, playerYaw + Math.PI, dt*1.2);
+    }
+  }
+  const camTarget = new THREE.Vector3(target.x, target.y+1.5, target.z);
+  const offset = new THREE.Vector3(
+    Math.sin(cameraTheta)*Math.cos(cameraPhi),
+    Math.sin(cameraPhi),
+    Math.cos(cameraTheta)*Math.cos(cameraPhi)
+  ).multiplyScalar(cameraDistance);
+  const desired = camTarget.clone().add(offset);
+  camera.position.lerp(desired, Math.min(1,dt*8));
+  camera.lookAt(camTarget);
+}
+
+// minimap
+const mmCanvas = document.getElementById('minimap');
+const mmCtx = mmCanvas.getContext('2d');
+function updateMinimap(){
+  const s = 260;
+  mmCtx.clearRect(0,0,s,s);
+  mmCtx.fillStyle = inZone==='alien' ? '#170a22' : '#20262c';
+  mmCtx.fillRect(0,0,s,s);
+  const scale = s/ (inZone==='alien'?ALIEN_SIZE:CITY_SIZE) * 1.0;
+  const originX = inZone==='alien'?ALIEN_OFFSET.x:0, originZ = inZone==='alien'?ALIEN_OFFSET.z:0;
+  function toXY(x,z){ return [ s/2+(x-originX)*scale, s/2+(z-originZ)*scale ]; }
+
+  if(inZone==='city'){
+    mmCtx.fillStyle='rgba(255,255,255,0.18)';
+    buildingColliders.forEach(b=>{
+      const [x,y] = toXY(b.x,b.z);
+      mmCtx.fillRect(x-b.hw*scale, y-b.hd*scale, b.hw*2*scale, b.hd*2*scale);
+    });
+    mmCtx.fillStyle='#37e6ff';
+    let [px,py]=toXY(cityPortal.position.x,cityPortal.position.z);
+    mmCtx.beginPath(); mmCtx.arc(px,py,4,0,7); mmCtx.fill();
+  } else {
+    mmCtx.fillStyle='#ff7a1a';
+    let [px,py]=toXY(alienPortal.position.x,alienPortal.position.z);
+    mmCtx.beginPath(); mmCtx.arc(px,py,4,0,7); mmCtx.fill();
+    creatures.forEach(c=>{
+      const [x,y]=toXY(c.pos.x,c.pos.z);
+      mmCtx.fillStyle = c.hostile ? '#ff3b3b':'#8ad4c0';
+      mmCtx.beginPath(); mmCtx.arc(x,y,3,0,7); mmCtx.fill();
+    });
+  }
+  npcs.forEach(n=>{
+    if(inZone!=='city') return;
+    const [x,y]=toXY(n.pos.x,n.pos.z);
+    mmCtx.fillStyle='#ffd27a';
+    mmCtx.beginPath(); mmCtx.arc(x,y,2.6,0,7); mmCtx.fill();
+  });
+  const pp = inCar?car.position:player.position;
+  const [x,y]=toXY(pp.x,pp.z);
+  mmCtx.save();
+  mmCtx.translate(x,y);
+  mmCtx.rotate(-(inCar?car.rotation.y:playerYaw));
+  mmCtx.fillStyle='#fff';
+  mmCtx.beginPath();
+  mmCtx.moveTo(0,-6); mmCtx.lineTo(4,5); mmCtx.lineTo(-4,5); mmCtx.closePath(); mmCtx.fill();
+  mmCtx.restore();
+}
+
+// ---------------------------------------------------------------------
+// districts -- gives the single city real "towns within the city" flavor
+// ---------------------------------------------------------------------
+let lastDistrict = null;
+function cityDistrictName(x,z){
+  const distCenter = Math.hypot(x,z);
+  if(distCenter < BLOCK*1.4) return 'Downtown';
+  if(x>0 && z<0) return 'Industrial District';
+  if(x>0 && z>=0) return 'Market District';
+  if(x<=0 && z<0) return 'Suburbs';
+  return 'Riverside';
+}
+function updateDistrict(){
+  if(inZone!=='city' || inCar || insideBuilding || gameMode==='space') return;
+  const name = cityDistrictName(player.position.x, player.position.z);
+  if(name !== lastDistrict){
+    if(lastDistrict!==null) showToast('ENTERING '+name.toUpperCase(), 2000);
+    lastDistrict = name;
+  }
+}
+
+// ---------------------------------------------------------------------
+// random comedy / atmosphere events -- real random selection on a timer,
+// not a fixed script, so the city keeps feeling alive between missions
+// ---------------------------------------------------------------------
+const COMEDY_EVENTS = [
+  "A car alarm goes off somewhere behind you for no reason at all.",
+  "Someone's radio blares a jingle three blocks away, then cuts out mid-note.",
+  "A cat sprints across the road like it owes someone money.",
+  "You catch a whiff of hot dogs. Big Tony is near. Big Tony is always near.",
+  "The streetlights flicker in sequence, like the whole block just blinked.",
+  "A stranger yells 'NICE SHOES' from a balcony and is never seen again.",
+  "Somewhere, a dog is having the time of its life. You can just tell.",
+  "A delivery drone buzzes past, clearly late, clearly panicking.",
+];
+const ALIEN_COMEDY_EVENTS = [
+  "Something in the distance makes a noise like a kazoo being murdered.",
+  "A floating rock briefly rearranges itself into a rude gesture. Probably a coincidence.",
+  "The sky flickers a color that doesn't have a name yet.",
+  "Something out there is laughing. You choose to believe it's friendly.",
+];
+let nextEventTimer = rand(45,80);
+function updateRandomEvents(dt){
+  if(gameMode==='space' || activeConversation || (mapModal && mapModal.classList.contains('open')) || (phoneModal && phoneModal.classList.contains('open'))) return;
+  nextEventTimer -= dt;
+  if(nextEventTimer<=0){
+    nextEventTimer = rand(55,110);
+    const pool = inZone==='city' ? COMEDY_EVENTS : ALIEN_COMEDY_EVENTS;
+    showDialogue('???', choice(pool), 3600);
+  }
+}
+
+// ---------------------------------------------------------------------
+// main loop
+// ---------------------------------------------------------------------
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  updateDayTime(dt);
+
+  if(gameMode==='space'){
+    updateSpaceFlight(dt);
+    updateCamera(dt);
+    renderer.render(scene, camera);
+    return;
+  }
+
+  if(inCar) updateVehicle(dt); else updatePlayer(dt);
+  updateNPCs(dt);
+  updateTrafficCars(dt,t);
+  updateAlienWorld(dt,t);
+  updateCamera(dt);
+  updateNearestInteractable();
+  checkMissionProgress();
+  updateMinimap();
+  updateDistrict();
+  updateRandomEvents(dt);
+
+  if(health<=0){
+    health=100;
+    const dest = cityPortal.position.clone().add(new THREE.Vector3(0,-1.6,10));
+    player.position.copy(dest);
+    inZone='city';
+    showToast("YOU GOT CLAPPED. RESPAWNING. THIS IS FINE.");
+  }
+
+  renderer.render(scene, camera);
+}
+
+// ---------------------------------------------------------------------
+// start screen wiring
+// ---------------------------------------------------------------------
+function showStartScreen(){
+  document.getElementById('startScreen').style.display='flex';
+}
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  resumeAudio();
+  startAmbient(false);
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('hud').style.display='block';
+  if(isTouchDevice()) document.getElementById('touchLayer').style.display='block';
+  setMissionStage(0);
+  animate();
+});
+
+boot();
+})();
+</script>
+</body>
+</html>
